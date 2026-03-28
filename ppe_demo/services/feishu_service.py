@@ -252,6 +252,38 @@ class FeishuService:
         else:
             raise Exception(f"上传文件失败: {result.get('msg')}")
     
+    async def update_bitable_record(
+        self,
+        app_token: str,
+        table_id: str,
+        record_id: str,
+        fields: Dict
+    ) -> Dict:
+        """
+        更新多维表格记录
+
+        Args:
+            app_token: 多维表格token
+            table_id: 数据表ID
+            record_id: 记录ID
+            fields: 要更新的字段
+
+        Returns:
+            更新结果
+        """
+        url = f"{self.base_url}/bitable/v1/apps/{app_token}/tables/{table_id}/records/{record_id}"
+        headers = await self._get_headers()
+
+        data = {"fields": fields}
+
+        response = await self.client.put(url, headers=headers, json=data)
+        result = response.json()
+
+        if result.get("code") == 0:
+            return result["data"]
+        else:
+            raise Exception(f"更新记录失败: {result.get('msg')}")
+
     async def close(self):
         """关闭客户端"""
         await self.client.aclose()
