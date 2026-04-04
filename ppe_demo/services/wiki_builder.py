@@ -52,8 +52,10 @@ class WikiBuilder:
         print(f"\n🔍 查找知识空间 '{WIKI_SPACE_NAME}'...")
         spaces = await self.feishu.list_wiki_spaces()
 
-        for space in spaces:
-            if space["name"] == WIKI_SPACE_NAME:
+        for item in spaces:
+            # API返回格式: {"space": {"name": ..., "space_id": ...}}
+            space = item.get("space", item)
+            if space.get("name") == WIKI_SPACE_NAME:
                 if not force_create:
                     self.space_id = space["space_id"]
                     print(f"  ✅ 找到现有空间，复用: {self.space_id}")

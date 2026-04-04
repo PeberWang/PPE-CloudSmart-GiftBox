@@ -100,6 +100,7 @@ class FeishuService:
 
         data = {
             "obj_type": obj_type,
+            "node_type": "origin",
             "node_title": title
         }
         if parent_node_token:
@@ -178,7 +179,7 @@ class FeishuService:
             API响应数据
         """
         block_id = parent_block_id or document_id
-        url = f"{self.base_url}/docx/v1/documents/{document_id}/blocks/{block_id}/children/batch_create"
+        url = f"{self.base_url}/docx/v1/documents/{document_id}/blocks/{block_id}/children"
         headers = await self._get_headers()
 
         payload = {

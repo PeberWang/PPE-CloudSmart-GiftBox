@@ -91,7 +91,7 @@ COURSES_BY_YEAR = {
 }
 
 # 知识库配置
-WIKI_SPACE_NAME = "PPE云端智能大礼包"
+WIKI_SPACE_NAME = "Demo PPE CloudSmart Giftbox"
 WIKI_YEAR_NODES = ["大一", "大二", "大三", "大四"]
 
 # 多维表格字段定义（学年课程表）

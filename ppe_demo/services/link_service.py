@@ -106,7 +106,7 @@ class LinkService:
                         app_token=app_token,
                         table_id=table_id,
                         record_id=record_id,
-                        fields={"学习指南": doc_url}
+                        fields={"学习指南": {"text": "查看学习指南", "link": doc_url}}
                     )
                     print(f"    ✅ {course_name}")
                     success_count += 1

@@ -67,7 +67,7 @@ async def deploy_docs(feishu: FeishuService, wiki: WikiBuilder, limit: int = 1) 
     doc_gen = DocGenerator(feishu, llm)
 
     # 生成文档
-    success_count = await doc_gen.generate_all_course_docs(limit=limit)
+    success_count = await doc_gen.generate_all_course_docs(limit=limit, wiki_builder=wiki)
 
     await llm.close()
     return success_count
@@ -116,8 +116,8 @@ async def deploy_full():
         # 2. 创建多维表格
         await deploy_tables(feishu, wiki)
 
-        # 3. 生成文档（先只生成1门课程用于演示）
-        await deploy_docs(feishu, wiki, limit=1)
+        # 3. 生成文档（全量）
+        await deploy_docs(feishu, wiki, limit=None)
 
         # 4. 上传资料（跳过，因为无真实资料）
         await deploy_upload(feishu)

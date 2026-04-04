@@ -31,7 +31,7 @@ class DocGenerator:
         self.output_dir = OUTPUT_DIR / "course_docs"
         self.output_dir.mkdir(exist_ok=True)
 
-    async def generate_course_doc(self, year: str, course_info: dict) -> str:
+    async def generate_course_doc(self, year: str, course_info: dict, wiki_builder=None) -> str:
         """
         为某门课程生成飞书云文档
 
@@ -62,11 +62,19 @@ class DocGenerator:
             course_name, teacher, exam_type, experiences, materials
         )
 
-        # 4. 创建飞书云文档
-        print(f"  - 创建飞书云文档...")
-        doc = await self.feishu.create_document(course_name)
-        doc_id = doc["document_id"]
-        print(f"    文档ID: {doc_id}")
+        # 4. 获取知识库节点文档ID（或创建新文档）
+        doc_id = None
+        if wiki_builder:
+            node_info = wiki_builder.get_course_node(year, course_name)
+            if node_info:
+                doc_id = node_info.get("obj_token")
+                print(f"  - 使用知识库节点文档: {doc_id}")
+
+        if not doc_id:
+            print(f"  - 创建飞书云文档...")
+            doc = await self.feishu.create_document(course_name)
+            doc_id = doc["document_id"]
+            print(f"    文档ID: {doc_id}")
 
         # 5. 构建文档块
         blocks = self._build_document_blocks(
@@ -263,11 +271,12 @@ class DocGenerator:
 
         return list(contributors.values())
 
-    async def generate_all_course_docs(self, limit: int = None) -> int:
+    async def generate_all_course_docs(self, limit: int = None, wiki_builder=None) -> int:
         """生成所有课程的文档
 
         Args:
             limit: 限制生成数量（用于测试）
+            wiki_builder: WikiBuilder 实例（用于获取知识库节点文档ID）
 
         Returns:
             成功生成的文档数量
@@ -286,7 +295,7 @@ class DocGenerator:
 
                 total_count += 1
                 try:
-                    await self.generate_course_doc(year, course)
+                    await self.generate_course_doc(year, course, wiki_builder=wiki_builder)
                     success_count += 1
                     await asyncio.sleep(1)  # 避免频率限制
                 except Exception as e:
