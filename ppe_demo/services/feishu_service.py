@@ -502,6 +502,49 @@ class FeishuService:
         """关闭客户端"""
         await self.client.aclose()
 
+    # ==================== Wiki节点查询 ====================
+
+    async def list_wiki_nodes(
+        self,
+        space_id: str,
+        parent_node_token: Optional[str] = None,
+        page_size: int = 50
+    ) -> List[dict]:
+        """列出知识库节点
+
+        Args:
+            space_id: 知识空间ID
+            parent_node_token: 父节点token（可选，筛选子节点）
+            page_size: 每页数量
+
+        Returns:
+            节点列表
+        """
+        url = f"{self.base_url}/wiki/v2/spaces/{space_id}/nodes"
+        headers = await self._get_headers(with_content_type=False)
+
+        params = {"page_size": page_size}
+        if parent_node_token:
+            params["parent_node_token"] = parent_node_token
+
+        all_nodes = []
+        while True:
+            response = await self.client.get(url, headers=headers, params=params)
+            result = response.json()
+
+            if result.get("code") == 0:
+                items = result["data"].get("items", [])
+                all_nodes.extend(items)
+
+                page_token = result["data"].get("page_token")
+                if not page_token:
+                    break
+                params["page_token"] = page_token
+            else:
+                raise Exception(f"获取知识库节点失败: {result.get('msg')}")
+
+        return all_nodes
+
 
 # 测试代码
 async def test_feishu_service():

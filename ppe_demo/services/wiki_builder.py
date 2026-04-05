@@ -183,6 +183,8 @@ class WikiBuilder:
     def get_doc_url(self, year: str, course_name: str) -> Optional[str]:
         """生成课程文档的飞书链接
 
+        优先查找独立文档链接（doc_mapping.json），回退到知识库wiki链接。
+
         Args:
             year: 学年
             course_name: 课程名称
@@ -190,6 +192,18 @@ class WikiBuilder:
         Returns:
             飞书文档URL 或 None
         """
+        # 优先查找独立文档映射
+        try:
+            mapping_path = os.path.join(os.path.dirname(__file__), "..", "doc_mapping.json")
+            with open(mapping_path, 'r', encoding='utf-8') as f:
+                mapping = json.load(f)
+            key = f"{year}-{course_name}"
+            if key in mapping:
+                return f"https://nkuyouth.feishu.cn/docx/{mapping[key]}"
+        except (FileNotFoundError, json.JSONDecodeError):
+            pass
+
+        # 回退到知识库wiki链接
         node_info = self.get_course_node(year, course_name)
         if node_info and self.space_id:
             return f"https://nkuyouth.feishu.cn/wiki/{node_info['node_token']}"

@@ -56,11 +56,21 @@ class DocGenerator:
         materials = self.upload_service.get_materials_by_course(course_name)
         print(f"  - 找到 {len(materials)} 个资料")
 
-        # 3. 调用LLM生成文档内容
+        # 3. 调用LLM生成文档内容（含重试机制）
         print(f"  - 调用AI生成文档内容...")
-        doc_content = await self.llm.generate_course_doc(
-            course_name, teacher, exam_type, experiences, materials
-        )
+        doc_content = None
+        max_retries = 3
+        for attempt in range(max_retries):
+            doc_content = await self.llm.generate_course_doc(
+                course_name, teacher, exam_type, experiences, materials
+            )
+            # 检查是否解析成功（不是fallback默认值）
+            if doc_content.get("overview", "暂无概述") != "暂无概述" or \
+               doc_content.get("difficulties", []) or \
+               attempt == max_retries - 1:
+                break
+            print(f"  ⚠️ LLM返回解析不完整，第{attempt+2}次重试...")
+            await asyncio.sleep(2)
 
         # 4. 获取知识库节点文档ID（或创建新文档）
         doc_id = None
@@ -90,7 +100,10 @@ class DocGenerator:
             if i + batch_size < len(blocks):
                 await asyncio.sleep(0.5)  # 频率限制：每批间隔0.5秒
 
-        # 7. 保存本地JSON备份
+        # 7. 保存文档映射（用于link_service生成链接）
+        self._save_doc_mapping(year, course_name, doc_id)
+
+        # 8. 保存本地JSON备份
         course_doc = CourseDocument(
             course_name=course_name,
             teacher=teacher,
@@ -109,7 +122,25 @@ class DocGenerator:
 
         return doc_id
 
-    def _build_document_blocks(
+    def _save_doc_mapping(self, year: str, course_name: str, doc_id: str):
+        """保存文档ID映射到本地文件，供link_service使用"""
+        import json
+        mapping_path = os.path.join(os.path.dirname(__file__), "..", "doc_mapping.json")
+
+        try:
+            with open(mapping_path, 'r', encoding='utf-8') as f:
+                mapping = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            mapping = {}
+
+        key = f"{year}-{course_name}"
+        mapping[key] = doc_id
+
+        with open(mapping_path, 'w', encoding='utf-8') as f:
+            json.dump(mapping, f, ensure_ascii=False, indent=2)
+
+    def _format_material_list(self, materials: List[dict]) -> dict:
+        """格式化资料列表（按类型分组）"""
         self,
         course_name: str,
         teacher: str,
