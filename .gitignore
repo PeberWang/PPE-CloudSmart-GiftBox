@@ -1,10 +1,39 @@
+# Python
 __pycache__/
 *.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# 环境变量（含敏感凭据）
 .env
-output/
-*.html
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
 .DS_Store
 Thumbs.db
-*.log
+desktop.ini
+
+# 项目特有
+output/
 node_map.json
 feishu_token.json
+*.log
+upload_records.json
+doc_mapping.json
+
+# 数据文件（含本地路径，不可提交到公开仓库）
+ppe_giftbox/data/materials.json
+ppe_giftbox/data/experiences.json
+ppe_giftbox/data/report.json
+ppe_giftbox/data/upload_summary.json
+
+# 重构脚本
+_fix_*.py
