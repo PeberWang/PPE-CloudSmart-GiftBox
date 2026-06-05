@@ -1,0 +1,31 @@
+请根据以下信息生成一份"学长学姐视角"的课程学习指南：
+
+课程名称：{{ course_name }}
+授课老师：{{ teacher }}
+开课学期：{{ semester }}
+考试形式：{{ exam_type }}
+
+{% if materials %}
+可用资料：
+{% for m in materials %}
+- {{ m }}
+{% endfor %}
+{% else %}
+可用资料：暂无资料
+{% endif %}
+
+{% if experiences %}
+学长学姐经验：
+{% for e in experiences %}
+- {{ e }}
+{% endfor %}
+{% else %}
+学长学姐经验：暂无经验
+{% endif %}
+
+请按照以下结构生成指南：
+1. 课程概述（包括课程特点和重要性）
+2. 学习重点和难点
+3. 老师教学风格和偏好
+4. 建议的学习方法和资源分配
+5. 考试准备建议

@@ -1,3 +1,6 @@
+# 本地工具二进制
+bin/
+
 # Python
 __pycache__/
 *.pyc
@@ -16,6 +19,9 @@ build/
 *.swp
 *.swo
 
+# 测试缓存
+.pytest_cache/
+
 # OS
 .DS_Store
 Thumbs.db
@@ -29,11 +35,20 @@ feishu_token.json
 upload_records.json
 doc_mapping.json
 
-# 数据文件（含本地路径，不可提交到公开仓库）
-ppe_giftbox/data/materials.json
-ppe_giftbox/data/experiences.json
-ppe_giftbox/data/report.json
-ppe_giftbox/data/upload_summary.json
+# pip-tools
+requirements.in.lock
 
-# 重构脚本
-_fix_*.py
+# 测试数据 & 运行时状态（不上云）
+data/
+log/
+cloud_stub/
+auto/
+memorandum/
+support/
+
+# Claude Code 内部文件
+.claude/
+
+# 一次性测试脚本（根目录）
+test_*.py
+!tests/

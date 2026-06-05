@@ -1,187 +1,165 @@
 # PPE云端智能大礼包
 
 > 南开大学PPE专业课程资料智能管理与分发系统
-
-## 📋 项目简介
-
-PPE云端智能大礼包是一个基于飞书开放平台的知识库自动构建系统，旨在帮助PPE专业学生：
-- 📚 系统化管理各学年课程资料
-- 📝 智能生成课程学习指南
-- 🔗 打通知识库、文档、多维表格的完整链路
-- 🤖 利用AI自动提取学长学姐的经验心得
-
-## 🚀 快速开始
-
-### 1. 环境准备
-
-```bash
-# 克隆项目
-git clone https://github.com/PeberWang/PPE-CloudSmart-GiftBox.git
-cd PPE-CloudSmart-GiftBox
-
-# 安装依赖
-pip install -r requirements.txt
-```
-
-### 2. 配置环境变量
-
-复制 `.env.example` 为 `.env` 并填写：
-
-```env
-FEISHU_APP_ID=your_app_id
-FEISHU_APP_SECRET=your_app_secret
-ZHIPU_API_KEY=your_api_key
-```
-
-### 3. 准备数据
-
-将课程资料数据放入 `ppe_giftbox/data/` 目录：
-- `materials.json` — 资料元信息
-- `experiences.json` — 心得体会
-
-### 4. 一键部署
-
-```bash
-# 完整部署（推荐首次使用）
-python deploy.py --mode full
-
-# 按模块部署
-python deploy.py --mode wiki      # 仅创建知识库
-python deploy.py --mode tables    # 仅创建多维表格
-python deploy.py --mode docs      # 仅生成文档
-python deploy.py --mode link      # 仅关联链接
-python deploy.py --mode upload    # 仅上传资料
-python deploy.py --mode sync      # 增量同步
-python deploy.py --mode cleanup   # 清理空记录
-```
-
-## 📁 项目结构
-
-```
-PPE-CloudSmart-GiftBox/
-├── deploy.py              # 统一部署入口（CLI）
-├── requirements.txt       # Python 依赖
-├── .env.example           # 环境变量模板
-├── .editorconfig          # 编辑器配置
-│
-├── ppe_giftbox/           # 核心应用包
-│   ├── __init__.py
-│   ├── config.py          # 全局配置（路径解析、API凭据、目录常量）
-│   ├── models.py          # 数据模型（Material, Experience, CourseDocument）
-│   ├── data/              # 源数据与数据定义
-│   │   ├── course_schema.py    # 课程数据、字段定义、常量
-│   │   ├── materials.json      # 资料元信息（.gitignore）
-│   │   ├── experiences.json    # 心得体会（.gitignore）
-│   │   └── report.json         # 报告数据（.gitignore）
-│   ├── output/            # 本地输出（.gitignore）
-│   │   └── course_docs/
-│   └── services/          # 核心服务层（按职责分层）
-│       ├── __init__.py
-│       ├── orchestrator.py     # 部署编排（流程控制）
-│       ├── core/               # 基础服务
-│       │   ├── feishu_service.py      # 飞书 API 封装
-│       │   ├── llm_service.py         # 智谱 AI 调用
-│       │   ├── pipeline.py            # 主流水线
-│       │   └── experience_service.py  # 心得体会服务
-│       ├── wiki/               # 知识库服务
-│       │   └── wiki_builder.py        # 知识库自动构建
-│       ├── bitable/            # 多维表格服务
-│       │   └── table_service.py       # 多维表格管理（增量更新）
-│       ├── docs/               # 文档服务
-│       │   ├── doc_generator.py       # 课程文档生成
-│       │   └── link_service.py        # 表格↔知识库链接关联
-│       ├── materials/          # 资料服务
-│       │   ├── material_uploader.py   # 资料批量上传到飞书
-│       │   └── upload_service.py      # 资料上传服务
-│       └── cleanup/            # 清理服务
-│           └── cleanup_service.py     # 部署残留清理
-│
-├── output/                # 部署产物（运行时生成）
-│   ├── wiki_structure.json  # 知识库结构配置（.gitignore）
-│   └── bitable_config.json  # 多维表格配置（.gitignore）
-│
-├── tests/                 # 测试脚本
-│   └── test_*.py
-│
-├── tools/                 # 辅助工具
-│   └── read_docs.py
-│
-├── docs/                  # 文档与规划
-│   ├── plan/              # 版本规划文档
-│   ├── memorandum/        # 技术备忘录
-│   └── support/           # 支撑文档
-│
-└── log/                   # 运行日志
-    └── YYYY-MM-DD-HH.md
-```
-
-## 🛠️ 技术架构
-
-### 核心设计原则
-
-- **配置驱动**：所有敏感信息通过 `.env` 环境变量管理，代码中无硬编码凭据
-- **服务分层**：按职责划分子模块（core/wiki/bitable/docs/materials/cleanup），通过 orchestrator 编排
-- **增量更新**：多维表格支持增量同步，保护用户手动编辑的字段
-- **自动重试**：内置网络超时与频率限制的退避重试机制
-
-### 数据流
-
-```
-本地数据 (materials.json, experiences.json)
-    ↓ UploadService / ExperienceService
-飞书知识库 (WikiBuilder → 空间 → 学年节点 → 课程节点)
-    ↓ DocGenerator + LLMService
-智能课程文档 (飞书云文档)
-    ↓ TableService + LinkService
-多维表格 (课程列表 ↔ 学习指南链接)
-```
-
-### 添加新课程
-
-编辑 `ppe_giftbox/data/course_schema.py` 中的 `COURSES_BY_YEAR` 字典即可。
-
-## ⚠️ 注意事项
-
-1. **飞书权限**：需开通 `wiki:wiki`、`docx:document`、`bitable:app`、`drive:file:upload`
-2. **API频率限制**：Docx 块操作约 3次/秒，已内置退避重试
-3. **数据安全**：`materials.json`、`wiki_structure.json` 等含敏感路径的文件已在 `.gitignore` 中排除
-
-## 📝 更新日志
-
-### v3.0 (2026-04-20)
-- 🏗️ 深度模块化重构：包名 `ppe_demo` → `ppe_giftbox`
-- 📦 配置分离：`course_schema.py` 独立存放课程数据与字段定义
-- 📂 服务分层：services/ 按职责重组为 core/wiki/bitable/docs/materials/cleanup
-- 🎯 部署编排：deploy.py 精简为 CLI 入口，逻辑移入 orchestrator.py
-- 📁 部署产物分离：wiki_structure.json、bitable_config.json 移至 output/
-
-### v2.1 (2026-04-20)
-- 🔧 项目结构重构：tests/、tools/、docs/ 目录整理
-- 📦 添加 `__init__.py`，规范化 Python 包结构
-- 🔒 完善 `.gitignore`，排除含敏感路径的数据文件
-- 📝 资料上传服务 (material_uploader.py)
-
-### v2.0 (2026-03-30)
-- ✨ 重构为飞书云文档架构
-- 🔗 打通多维表格与知识库链接
-- 📄 文档自动上传到飞书
-- 🚀 统一部署入口
-
-### v1.0 (2026-02-28)
-- 📚 本地 Markdown 文档生成
-- 📝 心得体会管理
-- 🎯 AI 智能提取
-
-## 📄 License
-
-MIT License
-
-## 👥 贡献者
-
-- 铭培（产品设计与需求）
-- 小劳（技术实现）
-- 南开大学PPE专业全体同学（资料贡献）
+>
+> 历史版本：[README_v4](docs/README_history/README_v4.md)
 
 ---
 
-*Made with ❤️ for Nankai PPE*
+## 产品定位
+
+**搜集 → 整合 → 分发。**
+
+大礼包本质是一条数据管道：
+1. **搜集**：通过飞书表单采集学长学姐的课程心得与推荐资料，SyncService 自动同步到本地数据库
+2. **整合**：以 `data/db/*.json`（`CourseData` 结构）作为源真相，LLM（DeepSeek）提炼与组织内容
+3. **分发**：自动在飞书知识库生成可读性强的「学年文档 + 内嵌课程导航表 + 独立课程学习指南」
+
+---
+
+## 知识库结构
+
+```
+知识库 Space
+├── 大一 (docx 节点) — 总论 + 内嵌 nav 表（大一所有课程，每行一门）
+├── 大二 (docx 节点) — 总论 + 内嵌 nav 表
+├── 大三 (docx 节点) — 总论 + 内嵌 nav 表
+└── 大四 (docx 节点) — 总论 + 内嵌 nav 表
+        nav 表「学习指南」字段链接到 ↓
+课程独立文档 (docx，非知识库节点)：6段结构
+  1. 课程内容概述
+  2. 学习难点与应对策略
+  3. 老师教学风格与偏好
+  4. 推荐资料（含贡献者）
+  5. 学长学姐心得
+  6. 贡献者致谢 + 资料下载区（云盘链接）
+```
+
+---
+
+## 数据流
+
+```
+data/db/*.json  (CourseData 源真相，Pydantic 校验)
+      │
+      ├──► 前台 nav 多维表格（每学年一张）──内嵌──► 学年文档
+      ├──► 课程学习指南文档（6段，DeepSeek 生成）
+      └──► 三级存储链路
+            源文件 + OCR全文 → 云盘（现：LocalStubDrive 占位）
+            摘要(md)         → 飞书云盘
+            摘要目录          → 飞书云盘（供知识助手问答）
+```
+
+---
+
+## 快速开始
+
+**环境要求**：Python 3.11+，飞书企业应用（机器人权限）
+
+```bash
+# 1. 安装依赖
+pip install -r requirements.txt
+
+# 2. 配置环境变量
+cp .env.example .env
+# 填写：FEISHU_APP_ID、FEISHU_APP_SECRET、BITABLE_APP_TOKEN
+#       LLM_API_KEY（DeepSeek）、GLM_API_KEY（OCR，可选）
+
+# 3. 生成模拟数据（首次）
+python scripts/seed_course_db.py
+
+# 4. 部署
+python deploy.py --mode full
+```
+
+---
+
+## 部署模式
+
+| 命令 | 说明 |
+|------|------|
+| `--mode wiki` | 创建/复用 4 个学年 docx 知识库节点，内嵌 nav 多维表格，保存 deploy_state.json |
+| `--mode tables` | 独立重建各学年 nav 多维表格（不需要知识库） |
+| `--mode docs` | 生成课程学习指南文档，回填 nav 表「学习指南」链接，追加学年总论 |
+| `--mode docs --limit N` | 仅生成前 N 份文档（测试用，跳过总论追加） |
+| `--mode upload` | 上传本地资料到飞书云盘 |
+| `--mode link` | 将 doc_url 回填到 nav 表（若文档已存在） |
+| `--mode ocr` | 扫描 materials_base 下 PDF，走三级存储链路（OCR + 摘要 + 上传） |
+| `--mode catalog` | 聚合 data/summaries/ 下摘要，生成资料目录并上传飞书 |
+| `--mode full` | 完整流程：wiki + tables + docs + upload + link |
+| `--mode sync` | 全量重建多维表格 |
+| `--mode sync-form` | 从管理表拉取已批准记录 → 合并到 data/db/*.json |
+| `logs` | 查看操作日志摘要与最近记录 |
+
+---
+
+## 关键配置
+
+| 变量 | 说明 | 默认 |
+|------|------|------|
+| `FEISHU_APP_ID` | 飞书应用 ID | 必填 |
+| `FEISHU_APP_SECRET` | 飞书应用密钥 | 必填 |
+| `BITABLE_APP_TOKEN` | 多维表格 App Token | 可选 |
+| `LLM_API_KEY` | DeepSeek API Key | 必填 |
+| `LLM_BASE_URL` | LLM 接入点（OpenAI 兼容） | `https://api.deepseek.com` |
+| `LLM_MODEL` | 使用的模型 | `deepseek-v4-pro` |
+| `GLM_API_KEY` | 智谱 API Key（OCR 用） | 可选 |
+| `FEISHU_DOC_HOST` | 文档链接域名（企业部署填 xyz.feishu.cn） | `feishu.cn` |
+| `WIKI_SPACE_NAME` | 知识空间名称 | `Demo PPE CloudSmart Giftbox` |
+| `CLOUD_DRIVE_BACKEND` | 云盘后端（local_stub / aliyun_oss） | `local_stub` |
+
+---
+
+## 四层架构
+
+```
+deploy.py (CLI 入口，typer)
+    ↓
+glue/         — 编排层：串联 services，零业务逻辑
+    ↓
+services/     — 业务层：功能单元，调用 libs
+    ↓
+libs/         — 适配层：封装第三方库差异
+    ↓
+config/       — 配置 + 数据模型
+```
+
+严格单向：glue → services → libs → config，同级不互通。
+
+---
+
+## 课程数据管理
+
+**源真相**：`data/db/{学年}.json`，每条记录为 `CourseData` 对象（含心得、资料、贡献者）。
+
+```bash
+# 初始化 / 重置演示数据
+python scripts/seed_course_db.py
+
+# 添加真实心得（编辑 data/db/ 对应 json 文件，遵守 CourseData schema）
+```
+
+**前台 nav 表字段**：课程名称 / 授课老师 / 开课学期 / 课程类型 / 考试形式 / 学习指南（URL）/ 资料数量 / 最后更新
+
+---
+
+## 飞书应用权限
+
+部署前需在飞书开放平台为应用开通：
+
+- `wiki:wiki`（知识库读写）
+- `docx:document`（文档读写）
+- `bitable:app`（多维表格读写）
+- `drive:drive`（云盘上传）
+- `drive:media:upload`（媒体上传）
+
+内嵌多维表格的学年文档还需将应用手动添加为文档协作者（运营步骤，首次部署后操作一次）。
+
+---
+
+---
+
+## 贡献者
+
+- 铭培（产品设计与需求）
+- 南开大学PPE专业全体同学（资料贡献者）

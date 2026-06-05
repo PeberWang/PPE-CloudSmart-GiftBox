@@ -1,0 +1,16 @@
+[project]
+name = "ppe-cloudsmart-giftbox"
+version = "0.1.0"
+description = "南开大学PPE专业课程资料平台 - 飞书云端智能大礼包"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

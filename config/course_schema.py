@@ -1,0 +1,185 @@
+# -*- coding: utf-8 -*-
+"""
+PPE云端智能大礼包 - 课程数据模型与字段定义
+
+数据分层：
+- CourseData（含 insights/materials/reflections/contributors）是源真相，落地于 data/db/*.json。
+- 前台 nav 表（NAV_TABLE_FIELDS）：面向新生的入口导航，内嵌进学年文档。
+- 后台管理表（MATERIALS/INSIGHTS_TABLE_FIELDS）：运营视角，供飞书表单采集（设计蓝图，下次接入）。
+"""
+
+from typing import List, Dict, Any
+from pydantic import BaseModel, Field
+
+
+# ==================== 富数据模型（源真相）====================
+
+class Insight(BaseModel):
+    """高分心得体会 —— 课程文档的核心资产，质量直接决定文档质量。"""
+    author: str = ""          # 作者，如 "22级小王"
+    grade: str = ""           # 年级，如 "22级"
+    score: str = ""           # 该课程成绩（用于验证"高分"）
+    content: str = ""         # 心得正文
+
+
+class Material(BaseModel):
+    """推荐资料（教材/笔记/真题/讲义/阅读材料…）。"""
+    name: str = ""                   # 标准化名称，如 "课程笔记_23级小陈"
+    material_type: str = ""          # PPT/笔记/真题/阅读材料/教材...
+    contributor: str = ""            # 贡献者，如 "23级小陈"
+    grade: str = ""                  # 贡献者年级
+    recommendation_reason: str = ""  # 推荐理由
+    file_link: str = ""              # 云盘下载链接（占位）
+    review_status: str = "已通过"     # 待审核/已通过/已拒绝
+
+
+class Contributor(BaseModel):
+    """贡献者及其贡献描述（参与感设计：不止"传了什么"，更是"如何丰富了对课程的理解"）。"""
+    name: str = ""           # 贡献者，如 "22级小王"
+    contribution: str = ""   # 贡献描述
+
+
+class CourseData(BaseModel):
+    """课程完整数据模型 —— data/db/{学年}.json 的每一行。"""
+    # 基本字段（用于前台 nav 表）
+    name: str
+    teacher: str = ""
+    semester: str = ""       # 大一上/大一下/...
+    type: str = ""           # 必修/选修
+    exam: str = ""           # 闭卷/开卷/论文/其他
+    year: str = ""           # 大一/大二/大三/大四
+    # 核心资产
+    insights: List[Insight] = Field(default_factory=list)
+    materials: List[Material] = Field(default_factory=list)
+    reflections: List[str] = Field(default_factory=list)
+    contributors: List[Contributor] = Field(default_factory=list)
+    # 派生 / 回填字段
+    doc_url: str = ""        # 课程独立文档链接（生成后回填到 nav 表"学习指南"）
+    updated_at: str = ""     # 最后更新时间（ISO 字符串）
+
+    @property
+    def material_count(self) -> int:
+        return len(self.materials)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return self.model_dump()
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "CourseData":
+        return cls.model_validate(data)
+
+
+# 向后兼容别名（旧代码 `from config.course_schema import Course`）
+Course = CourseData
+
+
+# ==================== 枚举常量 ====================
+
+MATERIAL_TYPES = ["PPT", "笔记", "真题", "阅读材料", "教材", "复习大纲", "练习题", "其他"]
+GRADES = ["22级", "23级", "24级"]
+WIKI_YEAR_NODES = ["大一", "大二", "大三", "大四"]
+
+
+# ==================== 课程花名册（roster，data/db 缺失时的回退种子）====================
+
+COURSES_BY_YEAR = {
+    "大一": [
+        {"name": "伦理学导论", "teacher": "李虎老师", "semester": "大一上", "type": "必修", "exam": "闭卷"},
+        {"name": "宪法学", "teacher": "赵聚军老师", "semester": "大一上", "type": "必修", "exam": "闭卷"},
+        {"name": "微观经济学", "teacher": "", "semester": "大一上", "type": "必修", "exam": "闭卷"},
+        {"name": "政治学原理", "teacher": "", "semester": "大一下", "type": "必修", "exam": "闭卷"},
+        {"name": "宏观经济学", "teacher": "", "semester": "大一下", "type": "必修", "exam": "闭卷"},
+        {"name": "概率论与数理统计", "teacher": "刘会刚老师", "semester": "大一下", "type": "必修", "exam": "闭卷"},
+    ],
+    "大二": [
+        {"name": "世界经济概论", "teacher": "雷鸣老师", "semester": "大二上", "type": "必修", "exam": "开卷"},
+        {"name": "中国经济概论", "teacher": "龚关老师", "semester": "大二上", "type": "必修", "exam": "闭卷"},
+        {"name": "西方政治思想史", "teacher": "柳建文老师", "semester": "大二上", "type": "必修", "exam": "闭卷"},
+        {"name": "中国政治思想史", "teacher": "孙晓春老师", "semester": "大二上", "type": "必修", "exam": "闭卷"},
+        {"name": "比较政治制度", "teacher": "贾义猛老师", "semester": "大二上", "type": "必修", "exam": "闭卷"},
+        {"name": "外国经济学说史", "teacher": "蒋雅文老师", "semester": "大二下", "type": "必修", "exam": "闭卷"},
+        {"name": "计量经济学", "teacher": "", "semester": "大二下", "type": "必修", "exam": "闭卷"},
+    ],
+    "大三": [
+        {"name": "中国哲学史", "teacher": "", "semester": "大三上", "type": "选修", "exam": "闭卷"},
+        {"name": "西方哲学史", "teacher": "", "semester": "大三上", "type": "选修", "exam": "闭卷"},
+        {"name": "国际关系", "teacher": "", "semester": "大三上", "type": "选修", "exam": "论文"},
+        {"name": "比较政治", "teacher": "", "semester": "大三下", "type": "选修", "exam": "论文"},
+    ],
+    "大四": [
+        {"name": "毕业论文", "teacher": "", "semester": "大四上", "type": "必修", "exam": "论文"},
+    ],
+}
+
+
+# ==================== 前台 nav 表字段（内嵌进学年文档）====================
+# 字段类型编号对照（飞书）：1 文本 / 2 数字 / 3 单选 / 5 日期 / 15 URL
+NAV_TABLE_FIELDS = [
+    ("课程名称", 1),
+    ("授课老师", 1),
+    ("开课学期", 3),
+    ("课程类型", 3),
+    ("考试形式", 3),
+    ("学习指南", 15),
+    ("资料数量", 2),
+    ("最后更新", 5),
+]
+
+# 向后兼容别名
+BITABLE_COURSE_FIELDS = NAV_TABLE_FIELDS
+
+# 增量更新时不覆盖的字段（避免清掉手动刷新的时间戳）
+PROTECTED_FIELDS = {"最后更新"}
+
+
+# ==================== 后台管理表字段（设计蓝图，飞书表单采集，下次接入）====================
+# 来源：技术方案 v3.0 §4.1.1 / §4.1.2
+MATERIALS_TABLE_FIELDS = [
+    ("资料名称", 1),
+    ("原始文件名", 1),
+    ("贡献者", 1),
+    ("年级", 3),
+    ("课程", 3),
+    ("资料类型", 3),
+    ("推荐理由", 1),
+    ("文件链接", 15),
+    ("上传时间", 5),
+    ("审核状态", 3),
+]
+
+INSIGHTS_TABLE_FIELDS = [
+    ("作者", 1),
+    ("年级", 3),
+    ("课程", 3),
+    ("成绩", 1),
+    ("心得内容", 1),
+    ("提交时间", 5),
+    ("审核状态", 3),
+    ("审核人", 1),
+]
+
+
+# ==================== 课程加载（data/db 源真相，缺失回退 roster）====================
+
+def _load_year(year: str) -> List[CourseData]:
+    """加载某学年课程：优先读 data/db/{year}.json，缺失则用 roster 基本字段构造。"""
+    from config.settings import settings           # 延迟导入，保持模块顶层轻量
+    from libs.data_adapter import read_course_db
+
+    records = read_course_db(settings.course_db_dir, year)
+    if records:
+        return [CourseData.from_dict(r) for r in records]
+    return [CourseData(year=year, **c) for c in COURSES_BY_YEAR.get(year, [])]
+
+
+def get_courses_by_year(year: str) -> List[CourseData]:
+    """获取指定学年的课程列表（CourseData）。"""
+    return _load_year(year)
+
+
+def get_all_courses() -> List[CourseData]:
+    """获取全部学年的课程列表（CourseData）。"""
+    courses: List[CourseData] = []
+    for year in WIKI_YEAR_NODES:
+        courses.extend(_load_year(year))
+    return courses
