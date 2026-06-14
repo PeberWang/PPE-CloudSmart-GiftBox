@@ -9,7 +9,9 @@ from libs.feishu import FeishuAdapter
 from libs.data_adapter import read_course_db, write_course_db
 from config.course_schema import (
     CourseData, Material, Insight,
+    COURSES_BY_YEAR,
     MATERIALS_TABLE_FIELDS, INSIGHTS_TABLE_FIELDS,
+    SINGLE_SELECT_OPTIONS,
     WIKI_YEAR_NODES,
 )
 
@@ -42,14 +44,67 @@ class SyncService:
 
             existing = await self.feishu.list_bitable_fields(app_token, tid)
             existing_names = {f["field_name"] for f in existing}
-            new_fields = [{"field_name": fn, "type": ft}
-                          for fn, ft in fields_def if fn not in existing_names]
+            new_fields = self._enrich_with_options(
+                [(fn, ft) for fn, ft in fields_def if fn not in existing_names]
+            )
             if new_fields:
                 await self.feishu.create_bitable_fields(app_token, tid, new_fields)
             result[name] = tid
 
         return {"materials": result[MATERIALS_TABLE_NAME],
                 "insights": result[INSIGHTS_TABLE_NAME]}
+
+    @staticmethod
+    def _enrich_with_options(fields_def):
+        """给单选字段（type=3）附加 property.options。"""
+        result = []
+        for name, ftype in fields_def:
+            fd = {"field_name": name, "type": ftype}
+            if ftype == 3 and name in SINGLE_SELECT_OPTIONS:
+                opts = SINGLE_SELECT_OPTIONS[name]
+                fd["property"] = {
+                    "options": [{"name": o, "color": i % 54} for i, o in enumerate(opts)]
+                }
+            result.append(fd)
+        return result
+
+    async def fix_single_select_options(self, app_token: str) -> Dict[str, Any]:
+        """给已存在 bitable 表里的单选字段补上选项（不删数据）。"""
+        updated = []
+        for table_name, _ in [
+            (MATERIALS_TABLE_NAME, MATERIALS_TABLE_FIELDS),
+            (INSIGHTS_TABLE_NAME, INSIGHTS_TABLE_FIELDS),
+        ]:
+            tables = await self.feishu.get_bitable_tables(app_token)
+            name_to_id = {t["name"]: t["table_id"] for t in tables}
+            tid = name_to_id.get(table_name)
+            if not tid:
+                logger.warning("表不存在，跳过", table=table_name)
+                continue
+
+            existing = await self.feishu.list_bitable_fields(app_token, tid)
+            for f in existing:
+                if f["type"] != 3:
+                    continue
+                opts = SINGLE_SELECT_OPTIONS.get(f["field_name"])
+                if not opts:
+                    continue
+                field_def = {
+                    "field_name": f["field_name"],
+                    "type": 3,
+                    "property": {
+                        "options": [{"name": o, "color": i % 54}
+                                    for i, o in enumerate(opts)]
+                    },
+                }
+                await self.feishu.update_bitable_field(
+                    app_token, tid, f["field_id"], field_def
+                )
+                updated.append({"table": table_name, "field": f["field_name"],
+                                "n_options": len(opts)})
+                logger.info("字段选项已更新", table=table_name,
+                            field=f["field_name"], n=len(opts))
+        return {"updated_fields": updated, "count": len(updated)}
 
     async def sync(self, app_token: str) -> Dict[str, Any]:
         """主入口：拉取已批准记录 → 按年级+课程合并到 data/db/*.json。"""
@@ -63,56 +118,77 @@ class SyncService:
         approved_insights = [r["fields"] for r in insights_raw
                              if r["fields"].get("审核状态") == "已通过"]
 
-        # 按 (年级, 课程名) 分组
+        # 按课程名分组（用课程名反查 year；bitable 的"年级"是贡献者年级不是学年）
         m_by_course = defaultdict(list)
         for m in approved_materials:
-            key = (m.get("年级", ""), m.get("课程", ""))
-            if key[0] and key[1]:
-                m_by_course[key].append(m)
+            cn = m.get("课程", "")
+            if cn:
+                m_by_course[cn].append(m)
 
         i_by_course = defaultdict(list)
         for ins in approved_insights:
-            key = (ins.get("年级", ""), ins.get("课程", ""))
-            if key[0] and key[1]:
-                i_by_course[key].append(ins)
+            cn = ins.get("课程", "")
+            if cn:
+                i_by_course[cn].append(ins)
 
-        all_keys = set(m_by_course.keys()) | set(i_by_course.keys())
+        all_course_names = set(m_by_course.keys()) | set(i_by_course.keys())
         updated, skipped = 0, 0
 
         for year in WIKI_YEAR_NODES:
-            year_keys = {k for k in all_keys if k[0] == year}
-            if not year_keys:
+            year_course_names = {c["name"] for c in COURSES_BY_YEAR.get(year, [])}
+            relevant = all_course_names & year_course_names
+            if not relevant:
                 continue
             records = read_course_db(self.db_dir, year)
             name_map = {r["name"]: r for r in records}
 
-            for _, course_name in year_keys:
+            for course_name in relevant:
                 if course_name not in name_map:
                     logger.warning("课程不在 data/db 中，跳过", year=year, course=course_name)
                     skipped += 1
                     continue
                 course = name_map[course_name]
 
-                for m in m_by_course.get((year, course_name), []):
-                    material = Material(
-                        name=m.get("资料名称", ""),
-                        material_type=m.get("资料类型", ""),
-                        contributor=m.get("贡献者", ""),
-                        grade=m.get("年级", ""),
-                        recommendation_reason=m.get("推荐理由", ""),
-                        file_link=m.get("文件链接", ""),
-                        review_status="已通过",
-                    )
-                    existing_names = {x.get("name") for x in course.get("materials", [])}
-                    if material.name not in existing_names:
-                        course.setdefault("materials", []).append(material.model_dump())
+                for m in m_by_course.get(course_name, []):
+                    # 多附件展开：一条记录 → N 个 Material，共享同一段推荐理由
+                    base = {
+                        "material_type": m.get("资料类型", ""),
+                        "contributor": m.get("贡献者", ""),
+                        "grade": m.get("届别", ""),
+                        "recommendation_reason": m.get("推荐理由", ""),
+                        "review_status": "已通过",
+                    }
+                    attachments = m.get("文件附件", []) or []
+                    if not isinstance(attachments, list):
+                        attachments = [attachments]
 
-                for ins in i_by_course.get((year, course_name), []):
+                    existing_names = {x.get("name") for x in course.get("materials", [])}
+                    if not attachments:
+                        # 无附件记录：用「资料名称」字段占位
+                        name = m.get("资料名称", "")
+                        if name and name not in existing_names:
+                            material = Material(name=name,
+                                                file_link=m.get("文件链接", ""), **base)
+                            course.setdefault("materials", []).append(material.model_dump())
+                        continue
+
+                    # 有附件：每个附件一个 Material
+                    # demo: file_link 暂用飞书附件 url，归档逻辑上线后替换为 OSS 预签名 URL
+                    for att in attachments:
+                        name = att.get("name", "")
+                        if not name or name in existing_names:
+                            continue
+                        material = Material(name=name,
+                                            file_link=att.get("url", ""), **base)
+                        course.setdefault("materials", []).append(material.model_dump())
+                        existing_names.add(name)
+
+                for ins in i_by_course.get(course_name, []):
                     existing_contents = {x.get("content") for x in course.get("insights", [])}
                     if ins.get("心得内容", "") and ins["心得内容"] not in existing_contents:
                         course.setdefault("insights", []).append(Insight(
                             author=ins.get("作者", ""),
-                            grade=ins.get("年级", ""),
+                            grade=ins.get("届别", ""),
                             score=ins.get("成绩", ""),
                             content=ins["心得内容"],
                         ).model_dump())

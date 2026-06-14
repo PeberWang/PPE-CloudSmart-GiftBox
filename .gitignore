@@ -9,6 +9,8 @@ __pycache__/
 dist/
 build/
 *.egg
+.venv/
+venv/
 
 # 环境变量（含敏感凭据）
 .env

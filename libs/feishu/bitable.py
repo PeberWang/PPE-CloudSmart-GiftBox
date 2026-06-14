@@ -11,6 +11,8 @@ from lark_oapi.api.bitable.v1 import (
     ListAppTableRecordRequest,
     BatchDeleteAppTableRecordRequest, BatchDeleteAppTableRecordRequestBody,
     CreateAppTableFieldRequest, AppTableField,
+    UpdateAppTableFieldRequest,
+    AppTableFieldProperty, AppTableFieldPropertyOption,
     ListAppTableFieldRequest,
     ListAppTableRequest,
     SearchAppTableRecordRequest, SearchAppTableRecordRequestBody,
@@ -104,13 +106,10 @@ class BitableMixin:
         return {"record_id": items[0].record_id, "fields": items[0].fields} if items else None
 
     async def create_bitable_fields(self, app_token: str, table_id: str, fields: list) -> List[Dict[str, Any]]:
-        """逐字段创建（Bitable API 每次只支持一个字段）"""
+        """逐字段创建。fields 元素可含 property 键（用于单选选项等）。"""
         results = []
         for field_def in fields:
-            f = (AppTableField.builder()
-                 .field_name(field_def["field_name"])
-                 .type(field_def["type"])
-                 .build())
+            f = self._build_field(field_def)
             request = (CreateAppTableFieldRequest.builder()
                        .app_token(app_token).table_id(table_id)
                        .request_body(f).build())
@@ -118,6 +117,35 @@ class BitableMixin:
             if resp.success():
                 results.append({"field_name": field_def["field_name"]})
         return results
+
+    async def update_bitable_field(self, app_token: str, table_id: str,
+                                    field_id: str, field_def: Dict[str, Any]) -> Dict[str, Any]:
+        """更新字段（用于设置 property.options 等）。"""
+        f = self._build_field(field_def)
+        request = (UpdateAppTableFieldRequest.builder()
+                   .app_token(app_token).table_id(table_id).field_id(field_id)
+                   .request_body(f).build())
+        resp = await self.client.bitable.v1.app_table_field.aupdate(request)
+        if not resp.success():
+            raise FeishuAPIException(f"更新字段失败: {resp.msg}", error_code=str(resp.code))
+        return {"field_id": field_id, "field_name": field_def["field_name"]}
+
+    @staticmethod
+    def _build_field(field_def: Dict[str, Any]) -> AppTableField:
+        """从 field_def 构造 AppTableField（含可选 property）。"""
+        builder = (AppTableField.builder()
+                   .field_name(field_def["field_name"])
+                   .type(field_def["type"]))
+        prop_data = field_def.get("property")
+        if prop_data and "options" in prop_data:
+            options = [
+                AppTableFieldPropertyOption.builder()
+                .name(o["name"]).color(o.get("color", 0))
+                .build()
+                for o in prop_data["options"]
+            ]
+            builder.property(AppTableFieldProperty.builder().options(options).build())
+        return builder.build()
 
     async def list_bitable_fields(self, app_token: str, table_id: str, page_size: int = 100) -> List[Dict[str, Any]]:
         all_fields, page_token = [], None

@@ -182,6 +182,43 @@ async def _deploy_sync_form(settings: Settings) -> Dict[str, Any]:
     return await pipeline.sync_form_pipeline(app_token)
 
 
+async def _deploy_init_bitable(settings: Settings) -> Dict[str, Any]:
+    """创建管理 bitable 应用（资料管理表 + 心得管理表），持久化 app_token。"""
+    logger.info("开始创建管理 bitable")
+    pipeline = Pipeline(settings)
+    result = await pipeline.init_bitable_pipeline()
+    _save_app_token(result["app_token"])
+    logger.info("app_token 已持久化，请填到 .env 的 BITABLE_APP_TOKEN",
+                app_token=result["app_token"], url=result.get("url"))
+    return result
+
+
+async def _deploy_grant_bitable(settings: Settings, member_type: str,
+                                member_id: str, perm: str = "full_access") -> Dict[str, Any]:
+    """给 bitable 添加协作者（解决应用是 owner 时人没法 UI 操作的问题）。"""
+    logger.info("开始添加 bitable 协作者", member_type=member_type, member_id=member_id)
+    app_token = await _resolve_app_token(settings)
+    pipeline = Pipeline(settings)
+    return await pipeline.grant_bitable_pipeline(app_token, member_type, member_id, perm)
+
+
+async def _deploy_open_bitable(settings: Settings,
+                               link_share_entity: str = "anyone_editable") -> Dict[str, Any]:
+    """设置 bitable 链接分享权限（凭链接即可访问，不需要协作者 ID）。"""
+    logger.info("开始设置 bitable 链接分享", link_share_entity=link_share_entity)
+    app_token = await _resolve_app_token(settings)
+    pipeline = Pipeline(settings)
+    return await pipeline.open_bitable_pipeline(app_token, link_share_entity)
+
+
+async def _deploy_fix_bitable(settings: Settings) -> Dict[str, Any]:
+    """给已存在 bitable 的单选字段补上选项。"""
+    logger.info("开始修复 bitable 单选选项")
+    app_token = await _resolve_app_token(settings)
+    pipeline = Pipeline(settings)
+    return await pipeline.fix_bitable_pipeline(app_token)
+
+
 async def _deploy_full(settings: Settings) -> Dict[str, Any]:
     logger.info("开始完整部署")
     rollback_manager = RollbackManager()
@@ -226,6 +263,8 @@ _MODE_HANDLERS = {
     "ocr": lambda s, a: _deploy_ocr(s),
     "catalog": lambda s, a: _deploy_catalog(s),
     "sync-form": lambda s, a: _deploy_sync_form(s),
+    "init-bitable": lambda s, a: _deploy_init_bitable(s),
+    "fix-bitable": lambda s, a: _deploy_fix_bitable(s),
     "full": lambda s, a: _deploy_full(s),
     "sync": lambda s, a: _deploy_sync(s),
 }

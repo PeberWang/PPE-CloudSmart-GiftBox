@@ -256,3 +256,66 @@ class Pipeline:
             return await svc.sync(app_token)
         finally:
             await feishu.close()
+
+    # ── 管理表初始化流程 ────────────────────────────────────────────────────
+
+    @log_operation("init_bitable_pipeline")
+    async def init_bitable_pipeline(self, app_name: str = "PPE大礼包管理表") -> Dict[str, Any]:
+        """创建管理 bitable 应用 + 资料管理表 + 心得管理表，返回 app_token 和 URL。"""
+        logger.info("开始创建管理 bitable", app_name=app_name)
+        feishu = FeishuAdapter(self.settings)
+        sync = SyncService(feishu, self.settings.course_db_dir)
+        try:
+            app = await feishu.create_bitable_app(app_name)
+            app_token = app["app_token"]
+            table_ids = await sync.ensure_tables(app_token)
+            logger.info("管理 bitable 创建完成", app_token=app_token, url=app["url"])
+            return {"app_token": app_token, "url": app["url"], "tables": table_ids}
+        finally:
+            await feishu.close()
+
+    @log_operation("grant_bitable_pipeline")
+    async def grant_bitable_pipeline(self, app_token: str, member_type: str,
+                                     member_id: str, perm: str = "full_access") -> Dict[str, Any]:
+        """给 bitable 添加协作者（解决应用是 owner 时人没 UI 权限的问题）。"""
+        logger.info("开始添加 bitable 协作者", app_token=app_token,
+                    member_type=member_type, member_id=member_id, perm=perm)
+        feishu = FeishuAdapter(self.settings)
+        try:
+            result = await feishu.add_doc_member(
+                token=app_token, doc_type="bitable",
+                member_type=member_type, member_id=member_id,
+                perm=perm, notify=True,
+            )
+            logger.info("协作者添加完成", **result)
+            return result
+        finally:
+            await feishu.close()
+
+    @log_operation("open_bitable_pipeline")
+    async def open_bitable_pipeline(self, app_token: str,
+                                    link_share_entity: str = "anyone_editable") -> Dict[str, Any]:
+        """设置 bitable 链接分享权限（不需要加协作者，凭链接即可编辑）。"""
+        logger.info("开始设置 bitable 链接分享", app_token=app_token,
+                    link_share_entity=link_share_entity)
+        feishu = FeishuAdapter(self.settings)
+        try:
+            result = await feishu.open_doc_public(
+                token=app_token, doc_type="bitable",
+                link_share_entity=link_share_entity,
+            )
+            logger.info("链接分享设置完成", **result)
+            return result
+        finally:
+            await feishu.close()
+
+    @log_operation("fix_bitable_pipeline")
+    async def fix_bitable_pipeline(self, app_token: str) -> Dict[str, Any]:
+        """给已存在 bitable 的单选字段补上选项（不删数据）。"""
+        logger.info("开始修复 bitable 单选选项", app_token=app_token)
+        feishu = FeishuAdapter(self.settings)
+        try:
+            svc = SyncService(feishu, self.settings.course_db_dir)
+            return await svc.fix_single_select_options(app_token)
+        finally:
+            await feishu.close()

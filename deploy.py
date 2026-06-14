@@ -80,6 +80,45 @@ def sync_form():
     asyncio.run(_run("sync-form"))
 
 
+@app.command(name="init-bitable")
+def init_bitable():
+    """创建管理用 bitable（资料管理表 + 心得管理表），返回 app_token"""
+    asyncio.run(_run("init-bitable"))
+
+
+@app.command(name="grant-bitable")
+def grant_bitable(
+    member: str = typer.Argument(..., help="协作者 ID（默认按 email 处理）"),
+    member_type: str = typer.Option("email", "--type", "-t",
+                                    help="ID 类型：email / openid / userid / departmentid"),
+    perm: str = typer.Option("full_access", "--perm", "-p",
+                             help="权限：view / edit / full_access"),
+):
+    """给 bitable 添加协作者（解决应用是 owner 时人没法 UI 操作的问题）"""
+    from glue.deploy import _deploy_grant_bitable
+    settings = Settings()
+    asyncio.run(_deploy_grant_bitable(settings, member_type, member, perm))
+
+
+@app.command(name="open-bitable")
+def open_bitable(
+    entity: str = typer.Option(
+        "anyone_editable", "--entity", "-e",
+        help="链接分享范围：closed / tenant_readable / tenant_editable / anyone_readable / anyone_editable",
+    ),
+):
+    """设置 bitable 链接分享权限（凭链接即可访问，不需要协作者 ID）"""
+    from glue.deploy import _deploy_open_bitable
+    settings = Settings()
+    asyncio.run(_deploy_open_bitable(settings, entity))
+
+
+@app.command(name="fix-bitable")
+def fix_bitable():
+    """给已存在 bitable 的单选字段补上选项（不删现有数据）"""
+    asyncio.run(_run("fix-bitable"))
+
+
 @app.command()
 def logs(limit: int = typer.Option(50, "--limit", help="显示最近 N 条日志")):
     """显示操作日志摘要和最近记录"""
