@@ -110,15 +110,10 @@ class DocService:
             sections = {}
 
         blocks = _course_doc_blocks(course, sections)
-        # 分离普通块（text/heading/divider）和表格块（block_type=31）
-        # 表格必须通过 descendant API 创建，children API 不支持嵌套结构
-        regular = [b for b in blocks if b.block_type != 31]
-        table_blocks = [b for b in blocks if b.block_type == 31]
-        idx = await self.feishu.append_blocks(doc_id, regular, index=0)
-        for tb in table_blocks:
-            idx = await self.feishu.create_descendant(doc_id, tb, index=idx)
+        # 写入混合块（普通 Block 用 append；BlockTree 表格用 descendant_tree）
+        await self.feishu.write_mixed_blocks(doc_id, blocks, index=-1)
         logger.info("课程文档写入完成", course=course.name, doc_id=doc_id,
-                    blocks=len(regular), tables=len(table_blocks))
+                    blocks=len(blocks))
         return doc_url
 
     async def replace_year_overview(self, obj_token: str, year: str, courses: List[CourseData]) -> None:

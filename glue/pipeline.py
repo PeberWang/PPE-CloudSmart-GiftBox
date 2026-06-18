@@ -82,13 +82,8 @@ class Pipeline:
 
                 if obj_token:
                     blocks = _year_content_blocks(year, courses)
-                    # 分离普通块和表格块（表格通过 descendant API 创建）
-                    regular = [b for b in blocks if b.block_type != 31]
-                    tables = [b for b in blocks if b.block_type == 31]
-                    idx = await feishu.append_blocks(obj_token, regular, index=0)
-                    for tb in tables:
-                        idx = await feishu.create_descendant(obj_token, tb, index=idx)
-                    logger.info("学年文档内容写入完成", year=year, blocks=len(regular), tables=len(tables))
+                    await feishu.write_mixed_blocks(obj_token, blocks, index=-1)
+                    logger.info("学年文档内容写入完成", year=year, blocks=len(blocks))
 
             # 3. 保存部署状态（供 doc 步骤使用）
             state = {"space_id": space_id, "app_token": app_token or "", "year_nodes": year_data}
@@ -129,7 +124,7 @@ class Pipeline:
 
             sorted_courses = sorted(courses, key=lambda c: (c.semester, c.type))
             new_table = B.nav_table(sorted_courses)
-            await feishu.create_descendant(obj_token, new_table, index=table_idx or 1)
+            await feishu.create_descendant_tree(obj_token, new_table, index=table_idx or -1)
             logger.info("原生课程导航表已重建", year=year, courses=len(courses))
             return {"year": year, "courses": len(courses), "status": "ok"}
         finally:
@@ -243,7 +238,7 @@ class Pipeline:
 
                 # 3. DELETE 旧表 → POST 新表
                 await feishu.delete_blocks(obj_token, table_idx, table_idx + 1)
-                await feishu.create_descendant(obj_token, new_table, index=table_idx)
+                await feishu.create_descendant_tree(obj_token, new_table, index=table_idx)
                 results.append({"year": year, "updated": len(courses)})
                 logger.info("导航表链接回填完成", year=year, courses=len(courses))
         finally:
