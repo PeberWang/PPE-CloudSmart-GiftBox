@@ -30,14 +30,14 @@ class CourseDataService:
         if app_token:
             courses = await self._from_bitable(year, app_token)
             if courses:
-                # 用本地 rich data（insights / materials / reflections）补全
+                # 用本地 rich data（insights / materials / contributors）补全
                 return self._merge_rich_data(year, courses)
         # 2. 本地 JSON 回退
         local = self._from_local(year)
         if local:
             return local
         # 3. 种子数据回退
-        return [CourseData(year=year, **c) for c in COURSES_BY_YEAR.get(year, [])]
+        return [CourseData(**c) for c in COURSES_BY_YEAR.get(year, [])]
 
     async def get_all(self, app_token: Optional[str] = None) -> List[CourseData]:
         """读取全部学年课程列表。"""
@@ -80,7 +80,6 @@ class CourseDataService:
                     semester=str(f.get("开课学期") or ""),
                     type=str(f.get("课程类型") or ""),
                     exam=str(f.get("考试形式") or ""),
-                    year=year,
                 ))
             return courses
         except Exception:
@@ -104,6 +103,5 @@ class CourseDataService:
                 rich = local_map[c.name]
                 c.insights = rich.insights
                 c.materials = rich.materials
-                c.reflections = rich.reflections
                 c.contributors = rich.contributors
         return bitable_courses

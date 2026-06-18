@@ -27,12 +27,13 @@ _STATE_FILE = "data/deploy_state.json"
 
 def _year_content_blocks(year: str, courses: list) -> List:
     """学年文档内容：标题 + 简介 + 原生课程导航表（学习指南链接待 link 步骤回填）。"""
+    sorted_courses = sorted(courses, key=lambda c: (c.semester, c.type))
     return [
         B.heading(f"{year}学年课程学习指南", 1),
         B.text(f"本文档汇集了 {year} 各门课程的学习资料与学长学姐的高分心得，共 {len(courses)} 门课程。"),
         B.divider(),
         B.heading("课程导航", 2),
-        B.nav_table(courses),
+        B.nav_table(sorted_courses),
     ]
 
 
@@ -46,8 +47,9 @@ class Pipeline:
     # ── 知识库构建流程（学年文档 + 内嵌 nav 表） ─────────────────────────
 
     @log_operation("wiki_pipeline")
-    async def wiki_pipeline(self, space_id: str = None, space_name: str = None) -> Dict[str, Any]:
-        logger.info("开始知识库构建流程")
+    async def wiki_pipeline(self, space_id: str = None, space_name: str = None,
+                            year_filter: str = None) -> Dict[str, Any]:
+        logger.info("开始知识库构建流程", year_filter=year_filter)
         feishu = FeishuAdapter(self.settings)
         wiki = WikiService(feishu)
         app_token = self.settings.bitable_app_token
@@ -65,8 +67,9 @@ class Pipeline:
                     self.rollback_manager.record_wiki_space(space_id, sn)
 
             # 2. 学年节点 → 原生表格内容（无需 bitable）
+            years = [year_filter] if year_filter else WIKI_YEAR_NODES
             year_data: Dict[str, Any] = {}
-            for year in WIKI_YEAR_NODES:
+            for year in years:
                 courses = get_courses_by_year(year)
                 if not courses:
                     continue
@@ -124,7 +127,8 @@ class Pipeline:
             if table_idx is not None:
                 await feishu.delete_blocks(obj_token, table_idx, table_idx + 1)
 
-            new_table = B.nav_table(courses)
+            sorted_courses = sorted(courses, key=lambda c: (c.semester, c.type))
+            new_table = B.nav_table(sorted_courses)
             await feishu.create_descendant(obj_token, new_table, index=table_idx or 1)
             logger.info("原生课程导航表已重建", year=year, courses=len(courses))
             return {"year": year, "courses": len(courses), "status": "ok"}
@@ -154,7 +158,7 @@ class Pipeline:
                     obj_token = node_info.get("obj_token") if node_info else None
                     if obj_token:
                         try:
-                            await doc.append_year_overview(obj_token, year, get_courses_by_year(year))
+                            await doc.replace_year_overview(obj_token, year, get_courses_by_year(year))
                         except Exception as e:
                             logger.warning("学年总论追加失败，跳过", year=year, error=str(e))
 
@@ -198,7 +202,8 @@ class Pipeline:
     # ── 文档链接回填流程 ─────────────────────────────────────────────────────
 
     @log_operation("link_pipeline")
-    async def link_pipeline(self, course_to_doc_map: Dict[str, str]) -> Dict[str, Any]:
+    async def link_pipeline(self, course_to_doc_map: Dict[str, str],
+                            year_filter: str = None) -> Dict[str, Any]:
         """回填文档链接到学年导航表：GET 定位旧表 → DELETE 删除 → POST 新表含链接。
 
         替代原逐行 bitable search+update 模式，每学年仅 3 次 API 调用。
@@ -208,8 +213,9 @@ class Pipeline:
         feishu = FeishuAdapter(self.settings)
         state = read_json(_STATE_FILE) or {}
         results, errors = [], []
+        years = [year_filter] if year_filter else WIKI_YEAR_NODES
         try:
-            for year in WIKI_YEAR_NODES:
+            for year in years:
                 year_nodes = state.get("year_nodes", {})
                 obj_token = (year_nodes.get(year) or {}).get("obj_token")
                 if not obj_token:
@@ -232,7 +238,8 @@ class Pipeline:
                 for c in courses:
                     if c.name in course_to_doc_map:
                         c.doc_url = course_to_doc_map[c.name]
-                new_table = B.nav_table(courses)
+                sorted_courses = sorted(courses, key=lambda c: (c.semester, c.type))
+                new_table = B.nav_table(sorted_courses)
 
                 # 3. DELETE 旧表 → POST 新表
                 await feishu.delete_blocks(obj_token, table_idx, table_idx + 1)
@@ -317,5 +324,56 @@ class Pipeline:
         try:
             svc = SyncService(feishu, self.settings.course_db_dir)
             return await svc.fix_single_select_options(app_token)
+        finally:
+            await feishu.close()
+
+    # ── OSS 归档流程 ────────────────────────────────────────────────────────
+
+    @log_operation("archive_pipeline")
+    async def archive_pipeline(self, app_token: str,
+                               purge_immediately: bool = False) -> Dict[str, Any]:
+        """飞书附件 → OSS 归档：扫资料表附件字段，上传 OSS，回填 URL，删原件。"""
+        import os
+        from libs.cloud import get_drive
+        from services.archive_service import ArchiveService
+        from services.sync_service import MATERIALS_TABLE_NAME
+
+        logger.info("开始 OSS 归档", app_token=app_token, purge_immediately=purge_immediately)
+        feishu = FeishuAdapter(self.settings)
+        cloud = get_drive(self.settings)
+        try:
+            # 拿资料表 table_id
+            tables = await feishu.get_bitable_tables(app_token)
+            name_to_id = {t["name"]: t["table_id"] for t in tables}
+            table_id = name_to_id.get(MATERIALS_TABLE_NAME)
+            if not table_id:
+                return {"status": "error",
+                        "message": f"未找到 {MATERIALS_TABLE_NAME}，请先 init-bitable"}
+
+            svc = ArchiveService(feishu, cloud, self.settings)
+            return await svc.archive_all(app_token, table_id, purge_immediately=purge_immediately)
+        finally:
+            await feishu.close()
+
+    @log_operation("purge_archived_pipeline")
+    async def purge_archived_pipeline(self, app_token: str,
+                                      older_than_days: int = 7) -> Dict[str, Any]:
+        """清理归档超 7 天的飞书原件（安全期机制）。"""
+        from libs.cloud import get_drive
+        from services.archive_service import ArchiveService
+        from services.sync_service import MATERIALS_TABLE_NAME
+
+        logger.info("开始安全期清理", older_than_days=older_than_days)
+        feishu = FeishuAdapter(self.settings)
+        cloud = get_drive(self.settings)
+        try:
+            tables = await feishu.get_bitable_tables(app_token)
+            name_to_id = {t["name"]: t["table_id"] for t in tables}
+            table_id = name_to_id.get(MATERIALS_TABLE_NAME)
+            if not table_id:
+                return {"status": "error",
+                        "message": f"未找到 {MATERIALS_TABLE_NAME}"}
+            svc = ArchiveService(feishu, cloud, self.settings)
+            return await svc.purge_archived(app_token, table_id, older_than_days)
         finally:
             await feishu.close()

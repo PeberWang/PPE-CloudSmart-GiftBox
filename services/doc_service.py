@@ -121,12 +121,34 @@ class DocService:
                     blocks=len(regular), tables=len(table_blocks))
         return doc_url
 
-    async def append_year_overview(self, obj_token: str, year: str, courses: List[CourseData]) -> None:
-        """LLM 生成学年总论，追加到学年文档末尾（index=9999 自动追加到最后）。"""
+    async def replace_year_overview(self, obj_token: str, year: str, courses: List[CourseData]) -> None:
+        """LLM 生成学年总论，替换学年文档里的旧总论块（准确覆写）。
+
+        旧块识别：找 heading block（block_type=4，text 含「学年概述」），连同前置 divider + 后置 text 一并删除。
+        未找到旧块时直接 append（首次创建场景）。确保重跑 docs 时不会追加第二份总论。
+        """
         text = await self.generate_year_overview(year, courses)
-        blocks = [B.divider(), B.heading("学年概述", 2), B.text(text)]
-        await self.feishu.append_blocks(obj_token, blocks, index=9999)
-        logger.info("学年总论追加完成", year=year)
+        new_blocks = [B.divider(), B.heading("学年概述", 2), B.text(text)]
+
+        top_blocks = await self.feishu.list_top_blocks(obj_token)
+        heading_idx = None
+        for i, blk in enumerate(top_blocks):
+            if blk.get("block_type") != 4:
+                continue
+            text_data = blk.get("text") or {}
+            elements = text_data.get("elements") or []
+            content = "".join(e.get("text_run", {}).get("content", "") for e in elements)
+            if "学年概述" in content:
+                heading_idx = i
+                break
+
+        if heading_idx is not None and heading_idx > 0 and heading_idx + 1 < len(top_blocks):
+            # 删除 [divider, heading, text] 三个连续块
+            await self.feishu.delete_blocks(obj_token, heading_idx - 1, heading_idx + 2)
+            logger.info("已删除旧学年总论块", year=year, start_idx=heading_idx - 1)
+
+        await self.feishu.append_blocks(obj_token, new_blocks, index=9999)
+        logger.info("学年总论替换完成", year=year)
 
     async def generate_all_course_guides(
         self,

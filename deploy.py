@@ -14,6 +14,7 @@ PPE云端智能大礼包 - 统一部署入口
 
 import asyncio
 import sys
+from enum import Enum
 from typing import Optional
 
 import typer
@@ -23,37 +24,56 @@ sys.stdout.reconfigure(encoding='utf-8')
 from glue.deploy import DeployArgs, deploy_mode
 from config.settings import Settings
 
+
+class YearFilter(str, Enum):
+    """学年过滤器。--year 参数用 Enum 强校验，typer 自动列出可选值，拼写错立刻报错。"""
+    大一 = "大一"
+    大二 = "大二"
+    大三 = "大三"
+    大四 = "大四"
+
+
 app = typer.Typer(help="PPE云端智能大礼包 - 统一部署工具")
 
 
-async def _run(mode: str, limit: Optional[int] = None, incremental: bool = False):
+async def _run(mode: str, limit: Optional[int] = None, incremental: bool = False,
+               year_filter: Optional[str] = None):
     settings = Settings()
-    args = DeployArgs(mode=mode, limit=limit, incremental=incremental)
+    args = DeployArgs(mode=mode, limit=limit, incremental=incremental,
+                      year_filter=year_filter)
     return await deploy_mode(settings, args)
 
 
 @app.command()
-def full():
+def full(year: Optional[YearFilter] = typer.Option(None, "--year", help="仅处理指定学年")):
     """完整部署（知识库 + 表格 + 文档 + 资料 + 关联）"""
-    asyncio.run(_run("full"))
+    asyncio.run(_run("full", year_filter=year.value if year else None))
 
 
 @app.command()
-def wiki():
+def wiki(year: Optional[YearFilter] = typer.Option(None, "--year", help="仅处理指定学年")):
     """仅创建知识库结构"""
-    asyncio.run(_run("wiki"))
+    asyncio.run(_run("wiki", year_filter=year.value if year else None))
 
 
 @app.command()
-def tables(incremental: bool = typer.Option(False, "--incremental", help="增量更新模式")):
+def tables(
+    incremental: bool = typer.Option(False, "--incremental", help="增量更新模式"),
+    year: Optional[YearFilter] = typer.Option(None, "--year", help="仅处理指定学年"),
+):
     """为每个学年创建多维表格"""
-    asyncio.run(_run("tables", incremental=incremental))
+    asyncio.run(_run("tables", incremental=incremental,
+                     year_filter=year.value if year else None))
 
 
 @app.command()
-def docs(limit: Optional[int] = typer.Option(None, "--limit", help="限制生成文档数量")):
+def docs(
+    limit: Optional[int] = typer.Option(None, "--limit", help="限制生成文档数量"),
+    year: Optional[YearFilter] = typer.Option(None, "--year", help="仅处理指定学年"),
+):
     """生成并上传课程学习指南文档"""
-    asyncio.run(_run("docs", limit=limit))
+    asyncio.run(_run("docs", limit=limit,
+                     year_filter=year.value if year else None))
 
 
 @app.command()
@@ -63,9 +83,9 @@ def upload():
 
 
 @app.command()
-def link():
+def link(year: Optional[YearFilter] = typer.Option(None, "--year", help="仅处理指定学年")):
     """关联表格与文档链接"""
-    asyncio.run(_run("link"))
+    asyncio.run(_run("link", year_filter=year.value if year else None))
 
 
 @app.command()
@@ -117,6 +137,32 @@ def open_bitable(
 def fix_bitable():
     """给已存在 bitable 的单选字段补上选项（不删现有数据）"""
     asyncio.run(_run("fix-bitable"))
+
+
+@app.command(name="archive-materials")
+def archive_materials(
+    purge_immediately: bool = typer.Option(
+        False, "--purge-immediately",
+        help="立即删飞书原件（默认保留 7 天安全期）",
+    ),
+):
+    """飞书附件 → OSS 归档（回填 URL + 删原件）"""
+    from glue.deploy import _deploy_archive
+    settings = Settings()
+    asyncio.run(_deploy_archive(settings, purge_immediately=purge_immediately))
+
+
+@app.command(name="purge-archived")
+def purge_archived(
+    older_than_days: int = typer.Option(
+        7, "--older-than-days",
+        help="清理归档时间早于 N 天的飞书原件（默认 7 天）",
+    ),
+):
+    """清理归档超期的飞书原件（7 天安全期机制）"""
+    from glue.deploy import _deploy_purge_archived
+    settings = Settings()
+    asyncio.run(_deploy_purge_archived(settings, older_than_days=older_than_days))
 
 
 @app.command()

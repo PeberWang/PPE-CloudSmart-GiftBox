@@ -28,8 +28,9 @@ class Material(BaseModel):
     material_type: str = ""          # PPT/笔记/真题/阅读材料/教材...
     contributor: str = ""            # 贡献者，如 "23级小陈"
     grade: str = ""                  # 贡献者年级
-    recommendation_reason: str = ""  # 推荐理由
-    file_link: str = ""              # 云盘下载链接（占位）
+    recommendation_reason: str = ""  # 推荐理由（贡献者主观视角）
+    summary: str = ""                # 资料摘要（OCR 后 LLM 生成，客观视角，用于精细化串讲区分）
+    file_link: str = ""              # OSS 下载链接（归档后回填）
     review_status: str = "已通过"     # 待审核/已通过/已拒绝
 
 
@@ -41,17 +42,15 @@ class Contributor(BaseModel):
 
 class CourseData(BaseModel):
     """课程完整数据模型 —— data/db/{学年}.json 的每一行。"""
-    # 基本字段（用于前台 nav 表）
+    # 基本字段（用于前台 nav 表；飞书 bitable 课程主数据表结构）
     name: str
     teacher: str = ""
     semester: str = ""       # 大一上/大一下/...
-    type: str = ""           # 必修/选修
+    type: str = ""           # 专业必修课/非专业必修课
     exam: str = ""           # 闭卷/开卷/论文/其他
-    year: str = ""           # 大一/大二/大三/大四
     # 核心资产
     insights: List[Insight] = Field(default_factory=list)
     materials: List[Material] = Field(default_factory=list)
-    reflections: List[str] = Field(default_factory=list)
     contributors: List[Contributor] = Field(default_factory=list)
     # 派生 / 回填字段
     doc_url: str = ""        # 课程独立文档链接（生成后回填到 nav 表"学习指南"）
@@ -76,6 +75,7 @@ Course = CourseData
 # ==================== 枚举常量 ====================
 
 MATERIAL_TYPES = ["PPT", "笔记", "真题", "阅读材料", "教材", "复习大纲", "练习题", "其他"]
+COURSE_TYPES = ["专业必修课", "非专业必修课"]
 GRADES = ["22级", "23级", "24级"]
 WIKI_YEAR_NODES = ["大一", "大二", "大三", "大四"]
 
@@ -84,30 +84,30 @@ WIKI_YEAR_NODES = ["大一", "大二", "大三", "大四"]
 
 COURSES_BY_YEAR = {
     "大一": [
-        {"name": "伦理学导论", "teacher": "李虎老师", "semester": "大一上", "type": "必修", "exam": "闭卷"},
-        {"name": "宪法学", "teacher": "赵聚军老师", "semester": "大一上", "type": "必修", "exam": "闭卷"},
-        {"name": "微观经济学", "teacher": "", "semester": "大一上", "type": "必修", "exam": "闭卷"},
-        {"name": "政治学原理", "teacher": "", "semester": "大一下", "type": "必修", "exam": "闭卷"},
-        {"name": "宏观经济学", "teacher": "", "semester": "大一下", "type": "必修", "exam": "闭卷"},
-        {"name": "概率论与数理统计", "teacher": "刘会刚老师", "semester": "大一下", "type": "必修", "exam": "闭卷"},
+        {"name": "伦理学导论", "teacher": "李虎老师", "semester": "大一上", "type": "专业必修课", "exam": "闭卷"},
+        {"name": "宪法学", "teacher": "赵聚军老师", "semester": "大一上", "type": "专业必修课", "exam": "闭卷"},
+        {"name": "微观经济学", "teacher": "", "semester": "大一上", "type": "专业必修课", "exam": "闭卷"},
+        {"name": "政治学原理", "teacher": "", "semester": "大一下", "type": "专业必修课", "exam": "闭卷"},
+        {"name": "宏观经济学", "teacher": "", "semester": "大一下", "type": "专业必修课", "exam": "闭卷"},
+        {"name": "概率论与数理统计", "teacher": "刘会刚老师", "semester": "大一下", "type": "专业必修课", "exam": "闭卷"},
     ],
     "大二": [
-        {"name": "世界经济概论", "teacher": "雷鸣老师", "semester": "大二上", "type": "必修", "exam": "开卷"},
-        {"name": "中国经济概论", "teacher": "龚关老师", "semester": "大二上", "type": "必修", "exam": "闭卷"},
-        {"name": "西方政治思想史", "teacher": "柳建文老师", "semester": "大二上", "type": "必修", "exam": "闭卷"},
-        {"name": "中国政治思想史", "teacher": "孙晓春老师", "semester": "大二上", "type": "必修", "exam": "闭卷"},
-        {"name": "比较政治制度", "teacher": "贾义猛老师", "semester": "大二上", "type": "必修", "exam": "闭卷"},
-        {"name": "外国经济学说史", "teacher": "蒋雅文老师", "semester": "大二下", "type": "必修", "exam": "闭卷"},
-        {"name": "计量经济学", "teacher": "", "semester": "大二下", "type": "必修", "exam": "闭卷"},
+        {"name": "世界经济概论", "teacher": "雷鸣老师", "semester": "大二上", "type": "专业必修课", "exam": "开卷"},
+        {"name": "中国经济概论", "teacher": "龚关老师", "semester": "大二上", "type": "专业必修课", "exam": "闭卷"},
+        {"name": "西方政治思想史", "teacher": "柳建文老师", "semester": "大二上", "type": "专业必修课", "exam": "闭卷"},
+        {"name": "中国政治思想史", "teacher": "孙晓春老师", "semester": "大二上", "type": "专业必修课", "exam": "闭卷"},
+        {"name": "比较政治制度", "teacher": "贾义猛老师", "semester": "大二上", "type": "专业必修课", "exam": "闭卷"},
+        {"name": "外国经济学说史", "teacher": "蒋雅文老师", "semester": "大二下", "type": "专业必修课", "exam": "闭卷"},
+        {"name": "计量经济学", "teacher": "", "semester": "大二下", "type": "专业必修课", "exam": "闭卷"},
     ],
     "大三": [
-        {"name": "中国哲学史", "teacher": "", "semester": "大三上", "type": "选修", "exam": "闭卷"},
-        {"name": "西方哲学史", "teacher": "", "semester": "大三上", "type": "选修", "exam": "闭卷"},
-        {"name": "国际关系", "teacher": "", "semester": "大三上", "type": "选修", "exam": "论文"},
-        {"name": "比较政治", "teacher": "", "semester": "大三下", "type": "选修", "exam": "论文"},
+        {"name": "中国哲学史", "teacher": "", "semester": "大三上", "type": "非专业必修课", "exam": "闭卷"},
+        {"name": "西方哲学史", "teacher": "", "semester": "大三上", "type": "非专业必修课", "exam": "闭卷"},
+        {"name": "国际关系", "teacher": "", "semester": "大三上", "type": "非专业必修课", "exam": "论文"},
+        {"name": "比较政治", "teacher": "", "semester": "大三下", "type": "非专业必修课", "exam": "论文"},
     ],
     "大四": [
-        {"name": "毕业论文", "teacher": "", "semester": "大四上", "type": "必修", "exam": "论文"},
+        {"name": "毕业论文", "teacher": "", "semester": "大四上", "type": "专业必修课", "exam": "论文"},
     ],
 }
 
@@ -128,6 +128,17 @@ NAV_TABLE_FIELDS = [
 # 向后兼容别名
 BITABLE_COURSE_FIELDS = NAV_TABLE_FIELDS
 
+# 飞书 bitable 课程主数据表（真相源）— 仅基本字段，insights/materials 通过关联表查询
+COURSE_TABLE_FIELDS = [
+    ("课程名称", 1),
+    ("授课老师", 1),
+    ("开课学期", 3),
+    ("课程类型", 3),
+    ("考试形式", 3),
+    ("资料数量", 2),   # 派生：sync 时从资料表 count
+    ("最后更新", 5),   # 派生：sync 时刷新
+]
+
 # 增量更新时不覆盖的字段（避免清掉手动刷新的时间戳）
 PROTECTED_FIELDS = {"最后更新"}
 
@@ -146,6 +157,8 @@ MATERIALS_TABLE_FIELDS = [
     ("资料名称", 1),
     ("原始文件名", 1),
     ("文件链接", 15),
+    ("资料摘要", 1),
+    ("归档时间", 5),
     ("上传时间", 5),
     # 管理员填
     ("审核状态", 3),
@@ -168,11 +181,16 @@ INSIGHTS_TABLE_FIELDS = [
 
 # 单选字段 → 选项列表（创建/修复字段时填充 property.options）
 AUDIT_STATUS = ["待审核", "已通过", "已拒绝"]
+SEMESTERS = ["大一上", "大一下", "大二上", "大二下", "大三上", "大三下", "大四上", "大四下"]
+EXAM_TYPES = ["闭卷", "开卷", "论文", "其他"]
 COURSE_NAMES = sorted({c["name"] for courses in COURSES_BY_YEAR.values() for c in courses})
 SINGLE_SELECT_OPTIONS = {
     "届别": GRADES,
     "课程": COURSE_NAMES,
     "资料类型": MATERIAL_TYPES,
+    "课程类型": COURSE_TYPES,
+    "开课学期": SEMESTERS,
+    "考试形式": EXAM_TYPES,
     "审核状态": AUDIT_STATUS,
 }
 
@@ -187,7 +205,7 @@ def _load_year(year: str) -> List[CourseData]:
     records = read_course_db(settings.course_db_dir, year)
     if records:
         return [CourseData.from_dict(r) for r in records]
-    return [CourseData(year=year, **c) for c in COURSES_BY_YEAR.get(year, [])]
+    return [CourseData(**c) for c in COURSES_BY_YEAR.get(year, [])]
 
 
 def get_courses_by_year(year: str) -> List[CourseData]:

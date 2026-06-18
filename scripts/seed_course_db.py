@@ -58,10 +58,6 @@ ENRICHMENT = {
             Material(name="尼各马可伦理学-精读章节标注版", material_type="阅读材料", contributor="22级小王", grade="22级",
                      recommendation_reason="老师课上重点讲的章节都做了批注，省去通读全书的时间。"),
         ],
-        reflections=[
-            "不要把伦理学当成背诵课——李老师真正想看到的，是你能否用一个明确的理论立场把一个具体道德困境分析到底。",
-            "原典精读 + 读书札记的习惯，比考前突击有用得多。",
-        ],
         contributors=[
             Contributor(name="22级小王", contribution="系统梳理了三大伦理学传统的论证脉络，贡献精读笔记与原典标注版，奠定了本课文档的主干。"),
             Contributor(name="23级小李", contribution="提炼期末论述题的四段式答题框架，并补充了平时分与课堂偏好的实战经验。"),
@@ -83,9 +79,6 @@ ENRICHMENT = {
             Material(name="宪法学-基本权利案例分析模板", material_type="复习大纲", contributor="22级小张", grade="22级",
                      recommendation_reason="针对平等权/自由权/社会权三类大题，提供'条文引用→案例套用→法理分析'的标准答题框架。"),
         ],
-        reflections=[
-            "宪法学不是法条背诵课。赵老师考的是'给你一个新案例，你能不能用法学思维去分析'。",
-        ],
         contributors=[
             Contributor(name="22级小张", contribution="建立了条文—案例—法理的三栏对照体系，把'散装'的宪法知识串成了分析框架。"),
         ],
@@ -106,9 +99,6 @@ ENRICHMENT = {
             Material(name="微观经济学-课后习题精选与详解", material_type="真题", contributor="23级小刘", grade="23级",
                      recommendation_reason="从教材课后题中筛选最贴近考试风格的30道，附详细画图步骤和计算过程。"),
         ],
-        reflections=[
-            "微观不是数学课。先画图理解经济直觉，再算。图形分析占分比计算题高得多。",
-        ],
         contributors=[
             Contributor(name="23级小刘", contribution="绘制了全套核心图形手册并用日常例子解释每个模型，让'怕数学'的同学也能建立微观直觉。"),
         ],
@@ -128,9 +118,6 @@ ENRICHMENT = {
                      recommendation_reason="一张流程图覆盖所有检验方法的选择逻辑：数据类型→样本数量→检验目标→对应公式。"),
             Material(name="概率统计-历年期末真题分类汇编", material_type="真题", contributor="22级小赵", grade="22级",
                      recommendation_reason="按题型分类（选择/填空/计算/综合），标注每道考察的知识点和常见陷阱。"),
-        ],
-        reflections=[
-            "这门课的核心不是公式推导，而是'看到数据就知道该用什么方法'的直觉。假设检验决策树比任何公式表都有用。",
         ],
         contributors=[
             Contributor(name="22级小赵", contribution="整理了假设检验方法选择的决策树和分类真题，让统计推断的选择逻辑变得清晰可见。"),
@@ -154,9 +141,6 @@ ENRICHMENT = {
             Material(name="世界经济概论-经典比较分析集", material_type="笔记", contributor="22级小孙", grade="22级",
                      recommendation_reason="整理了6组老师常考的比较（东亚vs拉美、中美vs日德模式等），每组都附关键数据和理论视角。"),
         ],
-        reflections=[
-            "雷老师的课不是国际经济新闻汇总，而是教你怎么用理论框架去理解国与国之间为什么赢、为什么输。",
-        ],
         contributors=[
             Contributor(name="22级小孙", contribution="将散落的知识点整合为贸易/金融/发展三条主线和6组经典比较，为论述题提供了清晰的答题框架。"),
         ],
@@ -178,9 +162,6 @@ ENRICHMENT = {
             Material(name="西方政治思想史-原典精读摘要", material_type="阅读材料", contributor="23级小周", grade="23级",
                      recommendation_reason="从每位思想家的代表作中摘出最常被引用的3-5段关键原文，附白话解读。"),
         ],
-        reflections=[
-            "别把思想史学成人物传记。核心是'问题史'：每个思想家都在回答前人留下的问题，同时提出新的问题。",
-        ],
         contributors=[
             Contributor(name="23级小周", contribution="设计了'核心问题×思想家'二维对照表，把思想的传承与断裂变成了可视化的比较框架。"),
         ],
@@ -201,9 +182,6 @@ ENRICHMENT = {
                      recommendation_reason="英/美/法/德/日五国的政治文化、制度设计、政党体系、政策产出四栏对比，一目了然。"),
             Material(name="比较政治制度-反事实分析框架", material_type="复习大纲", contributor="22级小吴", grade="22级",
                      recommendation_reason="针对'如果改制度会怎样'类题型，提供制度变量→激励变化→行为变化→结果变化的分析链路。"),
-        ],
-        reflections=[
-            "比较政治制度不是'各国政治知识竞赛'，而是理解制度如何塑造人的行为——这才叫'比较'。",
         ],
         contributors=[
             Contributor(name="22级小吴", contribution="构建了五国四维对比体系和反事实分析框架，把'制度比较'从描述提升为有因果逻辑的分析。"),
@@ -227,9 +205,6 @@ ENRICHMENT = {
             Material(name="《当代中国经济改革》吴敬琏-阅读重点", material_type="阅读材料", contributor="23级小林", grade="23级",
                      recommendation_reason="老师推荐的核心参考书，标出了与课程考点最相关的章节。"),
         ],
-        reflections=[
-            "这门课考的是'用经济学的眼光读懂中国四十年'，史实、数据、理论缺一不可。",
-        ],
         contributors=[
             Contributor(name="22级小陈", contribution="贡献含老师补充史料的完整课堂笔记与分阶段复习大纲，把一门'史料密集'的课讲成了清晰的脉络。"),
             Contributor(name="23级小林", contribution="标注了吴敬琏《当代中国经济改革》中与考点最相关的章节，降低了阅读门槛。"),
@@ -252,10 +227,6 @@ ENRICHMENT = {
                      recommendation_reason="同一个回归分别用 Stata 和 Python 实现，方便对照理解输出。"),
             Material(name="计量经济学-历年大作业范例", material_type="真题", contributor="23级小吴", grade="23级",
                      recommendation_reason="附带数据与完整报告，照着走一遍就知道实证报告该怎么写。"),
-        ],
-        reflections=[
-            "PPE 的同学应该系统自学 Python，尤其是 pandas 包，以培养数据分析的直觉。",
-            "先懂假设的经济含义，再看推导；先会跑一个真实回归，再去抠证明。",
         ],
         contributors=[
             Contributor(name="22级小王", contribution="提倡 PPE 同学应在计量经济学课程中系统自学 Python（尤其 pandas 包）以培养数据分析直觉。"),
@@ -282,9 +253,6 @@ ENRICHMENT = {
             Material(name="中国哲学史-核心原文背诵30条", material_type="复习大纲", contributor="22级小郑", grade="22级",
                      recommendation_reason="精选考试最常引用的30条原文，每条附白话翻译和适用题目类型。"),
         ],
-        reflections=[
-            "中国哲学不是'古代思想博物馆'。那些关于人性、修养、天理的讨论，今天仍然在回应我们的困惑。",
-        ],
         contributors=[
             Contributor(name="22级小郑", contribution="整理了三大思想线索的演变图谱和核心原文背诵集，把一门'浩瀚'的课变成了几条可把握的脉络。"),
         ],
@@ -306,9 +274,6 @@ ENRICHMENT = {
                      recommendation_reason="从行为体/核心变量/分析层次/核心命题四个维度对比三大理论，附代表人物和经典文献。"),
             Material(name="国际关系-近年重大事件多范式分析", material_type="复习大纲", contributor="23级小杨", grade="23级",
                      recommendation_reason="选取6个近年重大事件，每个事件分别用现实主义/自由主义/建构主义进行分析，直接应对论述题。"),
-        ],
-        reflections=[
-            "国际关系理论不是背定义，而是练就'多副眼镜'：同一件事，用不同理论看会得出完全不同的结论。",
         ],
         contributors=[
             Contributor(name="23级小杨", contribution="设计了三大范式的系统对比表和6组事件多范式分析，把理论变成了可以实际操练的分析工具。"),
@@ -332,9 +297,6 @@ ENRICHMENT = {
             Material(name="政治学原理-时事分析模板", material_type="复习大纲", contributor="22级小林", grade="22级",
                      recommendation_reason="提供'概念定位→理论框架→现象分析→反思局限'四步论述模板，附5个真题演练。"),
         ],
-        reflections=[
-            "政治学原理不是政治常识课，而是一套分析政治现象的概念工具箱。学会用概念去'解剖'新闻，才是真正的掌握。",
-        ],
         contributors=[
             Contributor(name="22级小林", contribution="整理了核心概念辨析集和时事分析模板，把'概念'变成了可操作的分析工具。"),
         ],
@@ -356,9 +318,6 @@ ENRICHMENT = {
                      recommendation_reason="从假设→推导→图形→政策含义四个层面彻底拆解两大核心模型，附20道典型计算题详解。"),
             Material(name="宏观经济学-短期vs长期政策效应对比表", material_type="复习大纲", contributor="23级小高", grade="23级",
                      recommendation_reason="财政政策/货币政策/供给侧冲击在短期和长期的不同效应，一张表搞定最常考的论述题。"),
-        ],
-        reflections=[
-            "宏观最怕的是'概念都懂，但不知道什么时候用哪个模型'。解决方法是每看到一个经济新闻，就强迫自己画 IS-LM 或 AD-AS 图去解释它。",
         ],
         contributors=[
             Contributor(name="23级小高", contribution="拆解了 IS-LM 和 AD-AS 两大核心模型的完整学习路径，并整理了短期vs长期的系统对比。"),
@@ -383,9 +342,6 @@ ENRICHMENT = {
             Material(name="中国政治思想史-经典比较题库", material_type="真题", contributor="22级小马", grade="22级",
                      recommendation_reason="整理了12组高频比较题（孟子vs荀子/朱熹vs王阳明/黄宗羲vs卢梭等），每组附参考答案要点。"),
         ],
-        reflections=[
-            "中国政治思想史不是'古人说了什么'的清单，而是理解中国政治思维方式的演变逻辑。四时段框架比逐个思想家记忆有效得多。",
-        ],
         contributors=[
             Contributor(name="22级小马", contribution="建立了四时段框架和12组经典比较题库，把跨越三千年的思想史变成了可把握的演变脉络。"),
         ],
@@ -407,9 +363,6 @@ ENRICHMENT = {
                      recommendation_reason="从重商主义到新自由主义的完整演化图谱，标注每个学派的核心问题/关键概念/政策主张。"),
             Material(name="外国经济学说史-学派对比表", material_type="复习大纲", contributor="23级小钱", grade="23级",
                      recommendation_reason="古典vs凯恩斯vs新古典综合vs新自由主义在价值论/分配论/危机论/政策观四个维度的系统对比。"),
-        ],
-        reflections=[
-            "经济学说史不是'经济学家的八卦汇编'，而是理解'为什么我们今天这样思考经济问题'的知识谱系。",
         ],
         contributors=[
             Contributor(name="23级小钱", contribution="构建了学派演化时间轴和四维对比体系，把互不关联的学派串成了一个有逻辑的演化故事。"),
@@ -435,9 +388,6 @@ ENRICHMENT = {
             Material(name="西方哲学史-经典原文论证拆解", material_type="阅读材料", contributor="22级小韩", grade="22级",
                      recommendation_reason="选取6段考试高频原文，逐句拆解论证结构（前提→推理→结论），附常见考题。"),
         ],
-        reflections=[
-            "西方哲学不是'名人名言录'。要学会追踪一个论证从前提走到结论的每一步——这才是哲学训练的核心。",
-        ],
         contributors=[
             Contributor(name="22级小韩", contribution="以形上/认识论双线梳理了西方哲学的主干，并拆解了6段经典原文的论证结构，把'玄学'变成了可追踪的逻辑。"),
         ],
@@ -459,9 +409,6 @@ ENRICHMENT = {
                      recommendation_reason="系统介绍MSSD/MDSD/QCA/过程追踪四种比较方法，每种附经典研究案例。"),
             Material(name="比较政治-论文写作指南", material_type="复习大纲", contributor="23级小朱", grade="23级",
                      recommendation_reason="从选题→文献综述→理论框架→经验分析→结论的完整论文写作流程，附优秀论文范例点评。"),
-        ],
-        reflections=[
-            "比较政治不是'各国政治简介'，而是学会用科学方法去解释政治现象的差异。方法比知识更重要。",
         ],
         contributors=[
             Contributor(name="23级小朱", contribution="整理了四种核心比较方法的手册和论文写作全流程指南，帮助同学从'描述'走向'解释'。"),
@@ -489,9 +436,6 @@ ENRICHMENT = {
             Material(name="PPE毕业论文-时间规划模板", material_type="笔记", contributor="22级小徐", grade="22级",
                      recommendation_reason="从大三暑假到毕业答辩的详细时间线，标注每个阶段的里程碑和常见拖延陷阱。"),
         ],
-        reflections=[
-            "毕业论文是你大学四年唯一一次从头到尾做一个完整的学术项目。选题对了就成功了一半——在交叉处找。",
-        ],
         contributors=[
             Contributor(name="22级小徐", contribution="贡献了选题指南、文献综述框架和时间规划模板三件套，为 PPE 论文全流程打了样。"),
         ],
@@ -507,7 +451,6 @@ def build_year(year: str) -> list:
         if extra:
             course.insights = extra["insights"]
             course.materials = extra["materials"]
-            course.reflections = extra["reflections"]
             course.contributors = extra["contributors"]
         # 自动生成仿真 OSS 下载链接
         for m in course.materials:

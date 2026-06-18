@@ -10,13 +10,14 @@ from libs.data_adapter import read_course_db, write_course_db
 from config.course_schema import (
     CourseData, Material, Insight,
     COURSES_BY_YEAR,
-    MATERIALS_TABLE_FIELDS, INSIGHTS_TABLE_FIELDS,
+    COURSE_TABLE_FIELDS, MATERIALS_TABLE_FIELDS, INSIGHTS_TABLE_FIELDS,
     SINGLE_SELECT_OPTIONS,
     WIKI_YEAR_NODES,
 )
 
 logger = structlog.get_logger()
 
+COURSE_TABLE_NAME = "课程主数据表"
 MATERIALS_TABLE_NAME = "资料管理表"
 INSIGHTS_TABLE_NAME = "心得管理表"
 
@@ -34,7 +35,8 @@ class SyncService:
         name_to_id = {t["name"]: t["table_id"] for t in tables}
 
         result = {}
-        for name, fields_def in [(MATERIALS_TABLE_NAME, MATERIALS_TABLE_FIELDS),
+        for name, fields_def in [(COURSE_TABLE_NAME, COURSE_TABLE_FIELDS),
+                                  (MATERIALS_TABLE_NAME, MATERIALS_TABLE_FIELDS),
                                   (INSIGHTS_TABLE_NAME, INSIGHTS_TABLE_FIELDS)]:
             if name in name_to_id:
                 tid = name_to_id[name]
@@ -51,7 +53,8 @@ class SyncService:
                 await self.feishu.create_bitable_fields(app_token, tid, new_fields)
             result[name] = tid
 
-        return {"materials": result[MATERIALS_TABLE_NAME],
+        return {"course": result[COURSE_TABLE_NAME],
+                "materials": result[MATERIALS_TABLE_NAME],
                 "insights": result[INSIGHTS_TABLE_NAME]}
 
     @staticmethod
@@ -72,6 +75,7 @@ class SyncService:
         """给已存在 bitable 表里的单选字段补上选项（不删数据）。"""
         updated = []
         for table_name, _ in [
+            (COURSE_TABLE_NAME, COURSE_TABLE_FIELDS),
             (MATERIALS_TABLE_NAME, MATERIALS_TABLE_FIELDS),
             (INSIGHTS_TABLE_NAME, INSIGHTS_TABLE_FIELDS),
         ]:
@@ -107,7 +111,13 @@ class SyncService:
         return {"updated_fields": updated, "count": len(updated)}
 
     async def sync(self, app_token: str) -> Dict[str, Any]:
-        """主入口：拉取已批准记录 → 按年级+课程合并到 data/db/*.json。"""
+        """主入口：拉取已批准记录 → 按年级+课程合并到 data/db/*.json。
+
+        边界规则（严格遵守）：
+        - 仅向 materials[]/insights[] 数组追加新项，绝不修改/删除已有项
+        - 绝不动 teacher/type/exam/semester 等基本字段（管理员 UI 改动具有最高优先级）
+        - 新贡献者自动追加到 contributors[]（gap 待补，见 production-checklist）
+        """
         table_ids = await self.ensure_tables(app_token)
 
         materials_raw = await self.feishu.list_bitable_records(app_token, table_ids["materials"])
@@ -134,8 +144,22 @@ class SyncService:
         all_course_names = set(m_by_course.keys()) | set(i_by_course.keys())
         updated, skipped = 0, 0
 
+        # 从 bitable 课程主数据表读全部课程，按 year 分组（"大一上"/"大一下" → "大一"）
+        all_course_records = await self.feishu.list_bitable_records(app_token, table_ids["course"])
+        year_to_course_names = defaultdict(set)
+        for r in all_course_records:
+            f = r.get("fields") or {}
+            sem = f.get("开课学期", "")
+            name = f.get("课程名称", "")
+            if not sem or not name:
+                continue
+            for y in WIKI_YEAR_NODES:
+                if sem.startswith(y):
+                    year_to_course_names[y].add(name)
+                    break
+
         for year in WIKI_YEAR_NODES:
-            year_course_names = {c["name"] for c in COURSES_BY_YEAR.get(year, [])}
+            year_course_names = year_to_course_names.get(year, set())
             relevant = all_course_names & year_course_names
             if not relevant:
                 continue
@@ -156,6 +180,7 @@ class SyncService:
                         "contributor": m.get("贡献者", ""),
                         "grade": m.get("届别", ""),
                         "recommendation_reason": m.get("推荐理由", ""),
+                        "summary": m.get("资料摘要", ""),
                         "review_status": "已通过",
                     }
                     attachments = m.get("文件附件", []) or []

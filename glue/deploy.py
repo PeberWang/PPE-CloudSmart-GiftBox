@@ -80,10 +80,11 @@ class DeployArgs:
     course_to_doc_map: Optional[Dict[str, str]] = None
     space_id: Optional[str] = None
     import_config: Optional[str] = None
+    year_filter: Optional[str] = None
 
 
-async def _deploy_wiki(settings: Settings) -> Dict[str, Any]:
-    logger.info("开始部署知识库")
+async def _deploy_wiki(settings: Settings, year_filter: Optional[str] = None) -> Dict[str, Any]:
+    logger.info("开始部署知识库", year_filter=year_filter)
     pipeline = Pipeline(settings)
     # 先查找已有空间，避免创建时触发需要 user_access_token 的权限检查
     feishu = FeishuAdapter(settings)
@@ -93,17 +94,20 @@ async def _deploy_wiki(settings: Settings) -> Dict[str, Any]:
     await feishu.close()
     if existing["space_id"]:
         logger.info("找到已有知识空间，直接使用", space_id=existing["space_id"])
-        return await pipeline.wiki_pipeline(space_id=existing["space_id"], space_name=None)
-    return await pipeline.wiki_pipeline(space_id=None, space_name=settings.wiki_space_name)
+        return await pipeline.wiki_pipeline(space_id=existing["space_id"], space_name=None,
+                                            year_filter=year_filter)
+    return await pipeline.wiki_pipeline(space_id=None, space_name=settings.wiki_space_name,
+                                        year_filter=year_filter)
 
 
-async def _deploy_tables(settings: Settings) -> Dict[str, Any]:
-    logger.info("开始独立部署多维表格（全量）")
+async def _deploy_tables(settings: Settings, year_filter: Optional[str] = None) -> Dict[str, Any]:
+    logger.info("开始独立部署多维表格", year_filter=year_filter)
     app_token = await _resolve_app_token(settings)
     pipeline = Pipeline(settings)
     course_data = CourseDataService(settings)
     all_results = []
-    for year in ["大一", "大二", "大三", "大四"]:
+    years = [year_filter] if year_filter else ["大一", "大二", "大三", "大四"]
+    for year in years:
         courses = await course_data.get_by_year(year, app_token)
         if courses:
             result = await pipeline.table_pipeline(app_token=app_token, year=year, courses=courses)
@@ -111,12 +115,16 @@ async def _deploy_tables(settings: Settings) -> Dict[str, Any]:
     return {"results": all_results}
 
 
-async def _deploy_docs(settings: Settings, limit: int = None) -> Dict[str, Any]:
-    logger.info("开始部署云文档", limit=limit)
+async def _deploy_docs(settings: Settings, limit: int = None,
+                       year_filter: Optional[str] = None) -> Dict[str, Any]:
+    logger.info("开始部署云文档", limit=limit, year_filter=year_filter)
     pipeline = Pipeline(settings)
     course_data = CourseDataService(settings)
     app_token = await _resolve_app_token(settings)
     all_courses = await course_data.get_all(app_token)
+    if year_filter:
+        all_courses = [c for c in all_courses if c.semester.startswith(year_filter)]
+        logger.info("按 year_filter 过滤后课程数", count=len(all_courses))
     result = await pipeline.doc_pipeline(space_id=None, courses=all_courses, limit=limit)
     return result
 
@@ -136,10 +144,12 @@ async def _deploy_materials(settings: Settings) -> Dict[str, Any]:
     return result
 
 
-async def _deploy_links(settings: Settings, course_to_doc_map: Dict[str, str] = None) -> Dict[str, Any]:
-    logger.info("开始关联表格与文档")
+async def _deploy_links(settings: Settings, course_to_doc_map: Dict[str, str] = None,
+                        year_filter: Optional[str] = None) -> Dict[str, Any]:
+    logger.info("开始关联表格与文档", year_filter=year_filter)
     pipeline = Pipeline(settings)
-    return await pipeline.link_pipeline(course_to_doc_map=course_to_doc_map)
+    return await pipeline.link_pipeline(course_to_doc_map=course_to_doc_map,
+                                        year_filter=year_filter)
 
 
 async def _deploy_sync(settings: Settings) -> Dict[str, Any]:
@@ -219,21 +229,38 @@ async def _deploy_fix_bitable(settings: Settings) -> Dict[str, Any]:
     return await pipeline.fix_bitable_pipeline(app_token)
 
 
-async def _deploy_full(settings: Settings) -> Dict[str, Any]:
-    logger.info("开始完整部署")
+async def _deploy_archive(settings: Settings, purge_immediately: bool = False) -> Dict[str, Any]:
+    """飞书附件 → OSS 归档。"""
+    logger.info("开始 OSS 归档", purge_immediately=purge_immediately)
+    app_token = await _resolve_app_token(settings)
+    pipeline = Pipeline(settings)
+    return await pipeline.archive_pipeline(app_token, purge_immediately=purge_immediately)
+
+
+async def _deploy_purge_archived(settings: Settings, older_than_days: int = 7) -> Dict[str, Any]:
+    """清理归档超期的飞书原件。"""
+    logger.info("开始安全期清理", older_than_days=older_than_days)
+    app_token = await _resolve_app_token(settings)
+    pipeline = Pipeline(settings)
+    return await pipeline.purge_archived_pipeline(app_token, older_than_days=older_than_days)
+
+
+async def _deploy_full(settings: Settings, year_filter: Optional[str] = None) -> Dict[str, Any]:
+    logger.info("开始完整部署", year_filter=year_filter)
     rollback_manager = RollbackManager()
     feishu = FeishuAdapter(settings)
     try:
-        wiki_result = await _deploy_wiki(settings)
+        wiki_result = await _deploy_wiki(settings, year_filter=year_filter)
         if wiki_result.get("status") == "error":
             raise Exception(f"知识库创建失败: {wiki_result.get('message')}")
         space_id = wiki_result["space_id"]
         rollback_manager.record_wiki_space(space_id, settings.wiki_space_name)
 
-        table_result = await _deploy_tables(settings)
-        doc_result = await _deploy_docs(settings, limit=None)
+        table_result = await _deploy_tables(settings, year_filter=year_filter)
+        doc_result = await _deploy_docs(settings, limit=None, year_filter=year_filter)
         material_result = await _deploy_materials(settings)
-        link_result = await _deploy_links(settings, doc_result.get("course_to_doc_map", {}))
+        link_result = await _deploy_links(settings, doc_result.get("course_to_doc_map", {}),
+                                          year_filter=year_filter)
 
         logger.info("完整部署完成")
         return {
@@ -255,17 +282,18 @@ async def _deploy_full(settings: Settings) -> Dict[str, Any]:
 
 
 _MODE_HANDLERS = {
-    "wiki": lambda s, a: _deploy_wiki(s),
-    "tables": lambda s, a: _deploy_tables(s),
-    "docs": lambda s, a: _deploy_docs(s, limit=a.limit),
+    "wiki": lambda s, a: _deploy_wiki(s, year_filter=a.year_filter),
+    "tables": lambda s, a: _deploy_tables(s, year_filter=a.year_filter),
+    "docs": lambda s, a: _deploy_docs(s, limit=a.limit, year_filter=a.year_filter),
     "upload": lambda s, a: _deploy_materials(s),
-    "link": lambda s, a: _deploy_links(s, course_to_doc_map=a.course_to_doc_map),
+    "link": lambda s, a: _deploy_links(s, course_to_doc_map=a.course_to_doc_map,
+                                        year_filter=a.year_filter),
     "ocr": lambda s, a: _deploy_ocr(s),
     "catalog": lambda s, a: _deploy_catalog(s),
     "sync-form": lambda s, a: _deploy_sync_form(s),
     "init-bitable": lambda s, a: _deploy_init_bitable(s),
     "fix-bitable": lambda s, a: _deploy_fix_bitable(s),
-    "full": lambda s, a: _deploy_full(s),
+    "full": lambda s, a: _deploy_full(s, year_filter=a.year_filter),
     "sync": lambda s, a: _deploy_sync(s),
 }
 
