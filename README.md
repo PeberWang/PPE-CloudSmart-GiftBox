@@ -34,10 +34,15 @@
 
 **本地电脑（3 件事）**：
 
-1. **装 Python 3.11+**（项目代码的解释器，无法自动装）
-   - 访问 https://www.python.org/downloads/
-   - 下载并运行安装包
-   - Windows 安装时**务必勾选底部「Add Python.exe to PATH」**
+1. **检查 / 装 Python 3.10+**（项目代码的解释器，无法自动装）
+
+   先看看你电脑是否已经有 Python：
+   - Windows：按 Win+R → 输入 `cmd` 回车 → 在 cmd 里输入 `python --version`
+   - macOS/Linux：终端输入 `python3 --version`
+
+   - 如果看到 `Python 3.10.x` 或更新 → 已装，跳到第 2 步
+   - 如果看到 `Python 3.9` 或更旧 → 装过但版本太旧，setup 脚本会提示升级
+   - 如果提示「不是内部或外部命令」→ 没装，去 https://www.python.org/downloads/ 下载（Windows 安装时**务必勾选底部「Add Python.exe to PATH」**）
 
 2. **下载项目代码**
 
@@ -49,6 +54,7 @@
    不熟悉 git？GitHub 页面点「Code」→「Download ZIP」→ 解压也行。
 
 3. **双击 `setup.bat`**（Windows）或 **跑 `bash setup.sh`**（macOS/Linux）
+   - 自动检测 Python 版本（过旧会提示升级，没装会打开下载页）
    - 自动创建虚拟环境（venv，不污染系统 Python）
    - 自动检测并装 LibreOffice（Office 文档 OCR 用）
    - 自动装 Python 依赖（装在 venv 里）

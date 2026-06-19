@@ -8,25 +8,38 @@ echo "  macOS / Linux 版本"
 echo "============================================"
 echo
 
-# === Step 1: 检测 Python ===
+# === Step 1: 检测 Python 版本 ===
 echo "[1/5] 检测 Python..."
 if command -v python3 >/dev/null 2>&1; then
-    PYVER=$(python3 --version 2>&1)
-    echo "      Python 已装，版本: $PYVER"
     SYS_PY=python3
 elif command -v python >/dev/null 2>&1; then
-    PYVER=$(python --version 2>&1)
-    echo "      Python 已装，版本: $PYVER"
     SYS_PY=python
 else
     echo
-    echo "[错误] 没有检测到 Python。请先安装 Python 3.11+："
-    echo "  macOS:  brew install python@3.11"
+    echo "[提示] 没有检测到 Python。"
+    echo
+    echo "项目需要 Python 3.10+。如果你之前在通识课等场合没装过，现在装一下："
+    echo "  macOS:          brew install python@3.11"
     echo "  Debian/Ubuntu:  sudo apt update && sudo apt install python3 python3-pip"
-    echo "  CentOS/RHEL:  sudo yum install python3 python3-pip"
+    echo "  CentOS/RHEL:    sudo yum install python3 python3-pip"
     echo "  或访问 https://www.python.org/downloads/"
     exit 1
 fi
+
+PYVER=$($SYS_PY --version 2>&1)
+
+# 检测版本 >= 3.10
+if ! $SYS_PY -c "import sys; exit(0 if sys.version_info >= (3, 10) else 1)" >/dev/null 2>&1; then
+    echo
+    echo "[提示] Python 版本过旧: $PYVER"
+    echo "  项目需要 Python 3.10+。建议升级："
+    echo "  macOS:          brew upgrade python"
+    echo "  Debian/Ubuntu:  sudo apt install --only-upgrade python3"
+    echo "  或访问 https://www.python.org/downloads/"
+    exit 1
+fi
+
+echo "      Python 已装，版本: $PYVER (>= 3.10，符合要求)"
 echo
 
 # === Step 2: 创建虚拟环境 ===

@@ -8,14 +8,22 @@ echo   Windows 版本
 echo ============================================
 echo.
 
-REM === Step 1: 检测 Python ===
+REM === Step 1: 检测 Python 版本 ===
 echo [1/5] 检测 Python...
-python --version >nul 2>&1
-if !errorlevel! neq 0 (
+
+REM 先看 python 命令，没有再试 python3（Linux/macOS 习惯）
+set "PY_CMD_SYS="
+python --version >nul 2>&1 && set "PY_CMD_SYS=python"
+if not defined PY_CMD_SYS (
+    python3 --version >nul 2>&1 && set "PY_CMD_SYS=python3"
+)
+
+if not defined PY_CMD_SYS (
     echo.
-    echo [错误] 没有检测到 Python。
+    echo [提示] 没有检测到 Python。
     echo.
-    echo 请先安装 Python 3.11+：
+    echo 项目需要 Python 3.10 或更新版本。如果你之前在通识课等场合没装过，
+    echo 现在装一下：
     echo   1. 访问 https://www.python.org/downloads/
     echo   2. 下载并运行安装包
     echo   3. 安装时务必勾选底部「Add Python.exe to PATH」
@@ -26,8 +34,30 @@ if !errorlevel! neq 0 (
     start https://www.python.org/downloads/
     exit /b 1
 )
-for /f "tokens=2" %%i in ('python --version 2^>^&1') do set PYVER=%%i
-echo       Python 已装，版本: !PYVER!
+
+REM 提取版本号
+for /f "tokens=2" %%i in ('!PY_CMD_SYS! --version 2^>^&1') do set PYVER=%%i
+
+REM 判断版本是否 >= 3.10
+!PY_CMD_SYS! -c "import sys; exit(0 if sys.version_info >= (3, 10) else 1)" >nul 2>&1
+if !errorlevel! neq 0 (
+    echo.
+    echo [提示] Python 版本过旧: !PYVER!
+    echo.
+    echo 项目需要 Python 3.10+（你装的 !PYVER! 不够新）。建议升级：
+    echo   1. 访问 https://www.python.org/downloads/
+    echo   2. 下载最新版 Python
+    echo   3. 安装时勾选「Add Python.exe to PATH」
+    echo   4. 卸载旧版本（控制面板 → 卸载程序，可选但推荐）
+    echo   5. 装完后重新跑 setup.bat
+    echo.
+    echo 按任意键打开下载页面...
+    pause >nul
+    start https://www.python.org/downloads/
+    exit /b 1
+)
+
+echo       Python 已装，版本: !PYVER! ^>= 3.10，符合要求
 echo.
 
 REM === Step 2: 创建虚拟环境 ===
