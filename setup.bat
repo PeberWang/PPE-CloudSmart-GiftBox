@@ -9,7 +9,7 @@ echo ============================================
 echo.
 
 REM === Step 1: 检测 Python ===
-echo [1/4] 检测 Python...
+echo [1/5] 检测 Python...
 python --version >nul 2>&1
 if !errorlevel! neq 0 (
     echo.
@@ -30,8 +30,31 @@ for /f "tokens=2" %%i in ('python --version 2^>^&1') do set PYVER=%%i
 echo       Python 已装，版本: !PYVER!
 echo.
 
-REM === Step 2: 检测并安装 LibreOffice ===
-echo [2/4] 检测 LibreOffice...
+REM === Step 2: 创建虚拟环境 ===
+echo [2/5] 创建 Python 虚拟环境...
+if not exist venv (
+    python -m venv venv
+    if !errorlevel! neq 0 (
+        echo       [错误] 创建虚拟环境失败
+        pause
+        exit /b 1
+    )
+    echo       虚拟环境已创建: venv\
+) else (
+    echo       venv 已存在，跳过创建
+)
+echo.
+
+REM 设置 Python 命令为 venv 里的（后续所有 pip 命令都在 venv 里跑）
+set "PY_CMD=venv\Scripts\python.exe"
+if not exist "!PY_CMD!" (
+    echo [错误] venv 里的 python.exe 不存在
+    pause
+    exit /b 1
+)
+
+REM === Step 3: 检测并安装 LibreOffice ===
+echo [3/5] 检测 LibreOffice...
 set "SOFFICE_PATH="
 if exist "C:\Program Files\LibreOffice\program\soffice.exe" (
     set "SOFFICE_PATH=C:\Program Files\LibreOffice\program\soffice.exe"
@@ -84,13 +107,13 @@ if defined SOFFICE_PATH (
 )
 echo.
 
-REM === Step 3: 安装 Python 依赖 ===
-echo [3/4] 安装 Python 依赖...
-python -m pip install --upgrade pip >nul 2>&1
-python -m pip install -r requirements.txt
+REM === Step 4: 安装 Python 依赖到 venv ===
+echo [4/5] 安装 Python 依赖到虚拟环境...
+"!PY_CMD!" -m pip install --upgrade pip >nul 2>&1
+"!PY_CMD!" -m pip install -r requirements.txt
 if !errorlevel! neq 0 (
     echo       官方源安装失败，尝试清华镜像源...
-    python -m pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+    "!PY_CMD!" -m pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
     if !errorlevel! neq 0 (
         echo.
         echo [错误] Python 依赖安装失败
@@ -98,11 +121,11 @@ if !errorlevel! neq 0 (
         exit /b 1
     )
 )
-echo       依赖安装完成
+echo       依赖安装完成（在 venv\ 内，不污染系统 Python）
 echo.
 
-REM === Step 4: 创建 .env 文件 ===
-echo [4/4] 准备 .env 配置文件...
+REM === Step 5: 创建 .env 文件 ===
+echo [5/5] 准备 .env 配置文件...
 if not exist .env (
     copy .env.example .env >nul
     echo       已从 .env.example 创建 .env
@@ -119,7 +142,11 @@ echo 下一步：
 echo   1. 用记事本打开当前目录下的 .env 文件
 echo   2. 填入凭证（飞书/DeepSeek/智谱/阿里云）
 echo      详细字段说明见 docs\00-快速开始.md 第三节
-echo   3. 跑 python deploy.py init-bitable 开始部署
-echo   4. 完整流程见 README.md
+echo   3. 双击 start.bat 打开已激活虚拟环境的终端
+echo   4. 在终端里跑 python deploy.py init-bitable 开始部署
+echo   5. 完整流程见 README.md
+echo.
+echo 注意：所有 python deploy.py 命令必须先双击 start.bat
+echo 在激活的虚拟环境里跑，否则找不到依赖。
 echo.
 pause

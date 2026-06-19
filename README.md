@@ -49,8 +49,9 @@
    不熟悉 git？GitHub 页面点「Code」→「Download ZIP」→ 解压也行。
 
 3. **双击 `setup.bat`**（Windows）或 **跑 `bash setup.sh`**（macOS/Linux）
+   - 自动创建虚拟环境（venv，不污染系统 Python）
    - 自动检测并装 LibreOffice（Office 文档 OCR 用）
-   - 自动装 Python 依赖
+   - 自动装 Python 依赖（装在 venv 里）
    - 自动创建 `.env` 配置文件
    - 脚本逻辑和排错见 [00 § 2.2](docs/00-快速开始.md#22-一键装所有依赖--配置推荐)
 
@@ -92,7 +93,9 @@ WIKI_SPACE_NAME=XX 专业课程大礼包                   # 你的专业名
 
 ### 3.3 首次部署（6 命令）
 
-按顺序在终端跑：
+**每次跑命令前先双击 `start.bat`**（Windows）或跑 `bash start.sh`（macOS/Linux）。这个脚本会激活虚拟环境，弹出一个已经准备好跑 python 命令的终端窗口。
+
+在激活的终端里按顺序跑：
 
 ```bash
 # 1. 初始化 bitable（建课程主数据表 + 资料管理表 + 心得管理表）
@@ -120,6 +123,8 @@ python deploy.py link
 
 **首次没有资料怎么办？** docs 会基于课程基本信息 + 占位内容生成（串讲段落写「待同学补充」），等你后续通过表单收集资料，重跑 sync + docs + link 就会更新。
 
+> **提示**：所有 `python deploy.py xxx` 命令必须在激活的虚拟环境里跑（双击 start.bat 后的终端）。否则会报「找不到模块」错误。详见 [00 § 2.4](docs/00-快速开始.md#24-日常使用双击-startbat)。
+
 ---
 
 ## 四、日常维护（管理员）
@@ -127,6 +132,8 @@ python deploy.py link
 ### 4.1 学生提交了新资料后
 
 学生通过飞书表单填了资料 → 资料管理表多了一条记录（审核状态默认「待审核」）→ 你需要：
+
+**先双击 `start.bat` 打开激活虚拟环境的终端**，然后跑下面的命令：
 
 ```bash
 # Step 1：在 bitable UI 把记录的「审核状态」改为「已通过」
