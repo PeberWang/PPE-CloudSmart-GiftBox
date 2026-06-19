@@ -211,6 +211,7 @@ async def _deploy_init_bitable(settings: Settings) -> Dict[str, Any]:
     _save_app_token(result["app_token"])
     logger.info("app_token 已持久化，请填到 .env 的 BITABLE_APP_TOKEN",
                 app_token=result["app_token"], url=result.get("url"))
+    logger.info("bitable URL（请发到飞书群保存，否则管理员找不到）", url=result.get("url"))
     return result
 
 
@@ -221,6 +222,23 @@ async def _deploy_grant_bitable(settings: Settings, member_type: str,
     app_token = await _resolve_app_token(settings)
     pipeline = Pipeline(settings)
     return await pipeline.grant_bitable_pipeline(app_token, member_type, member_id, perm)
+
+
+async def _deploy_grant_wiki(settings: Settings, member_type: str,
+                              member_id: str, perm_role: str = "admin") -> Dict[str, Any]:
+    """给知识空间加成员（解决应用是 owner 时人没法 UI 编辑知识库的问题）。
+
+    space_id 从 deploy_state.json 读（wiki 命令写入）。
+    """
+    logger.info("开始添加知识库成员", member_type=member_type,
+                member_id=member_id, perm_role=perm_role)
+    state = read_json(_DEPLOY_STATE_PATH) or {}
+    space_id = state.get("space_id")
+    if not space_id:
+        return {"status": "error",
+                "message": "deploy_state.json 中没有 space_id，请先跑 python deploy.py wiki"}
+    pipeline = Pipeline(settings)
+    return await pipeline.grant_wiki_pipeline(space_id, member_type, member_id, perm_role)
 
 
 async def _deploy_open_bitable(settings: Settings,

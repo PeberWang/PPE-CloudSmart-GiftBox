@@ -96,8 +96,11 @@ class Pipeline:
             write_json(_STATE_FILE, state)
 
             await feishu.close()
+            # 知识库 URL（飞书 wiki 空间访问入口）
+            wiki_url = f"https://{self.settings.feishu_doc_host}/wiki/space/{space_id}"
             logger.info("知识库构建完成", space_id=space_id, years=len(year_data))
-            return {"space_id": space_id, "year_nodes": year_data}
+            logger.info("知识库 URL（请发到飞书群保存，否则管理员找不到）", url=wiki_url)
+            return {"space_id": space_id, "url": wiki_url, "year_nodes": year_data}
 
         except Exception as e:
             logger.error("知识库构建失败", error=str(e))
@@ -326,6 +329,33 @@ class Pipeline:
             )
             logger.info("协作者添加完成", **result)
             return result
+        finally:
+            await feishu.close()
+
+    @log_operation("grant_wiki_pipeline")
+    async def grant_wiki_pipeline(self, space_id: str, member_type: str,
+                                   member_id: str, perm_role: str = "admin") -> Dict[str, Any]:
+        """给知识空间加成员（解决应用是 owner 时人没法 UI 操作的问题）。
+
+        perm_role 角色：
+        - admin：管理员（可以编辑、添加成员、改设置）
+        - editor：编辑者（可以编辑所有页面）
+        - viewer：阅读者（只能看）
+        """
+        logger.info("开始添加知识库成员", space_id=space_id,
+                    member_type=member_type, member_id=member_id, perm_role=perm_role)
+        feishu = FeishuAdapter(self.settings)
+        try:
+            results = await feishu.add_wiki_space_members(
+                space_id, [{"member_type": member_type, "member_id": member_id,
+                            "perm_role": perm_role}]
+            )
+            if results and results[0].get("status") == "added":
+                logger.info("知识库成员已添加", member_id=member_id, perm_role=perm_role)
+                return {"member_id": member_id, "perm_role": perm_role, "status": "added"}
+            logger.warning("添加知识库成员可能失败", result=results[0] if results else None)
+            return {"member_id": member_id, "perm_role": perm_role,
+                    "status": results[0].get("status", "failed") if results else "failed"}
         finally:
             await feishu.close()
 

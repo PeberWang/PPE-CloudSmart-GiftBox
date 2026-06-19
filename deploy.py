@@ -120,6 +120,28 @@ def grant_bitable(
     asyncio.run(_deploy_grant_bitable(settings, member_type, member, perm))
 
 
+@app.command(name="grant-wiki")
+def grant_wiki(
+    member: str = typer.Argument(..., help="成员 ID（默认按 email 处理）"),
+    member_type: str = typer.Option("email", "--type", "-t",
+                                    help="ID 类型：email / openid / userid / departmentid"),
+    perm_role: str = typer.Option("admin", "--perm", "-p",
+                                   help="角色：admin（管理员） / editor（编辑） / viewer（只读）"),
+):
+    """给知识库加成员（让指定用户能在飞书 UI 编辑知识库）。
+
+    wiki 命令建的知识库默认应用是 owner，真实管理员账号无权编辑。
+    跑这个命令把自己（管理员）加为知识库 admin，之后就能在 UI 里编辑。
+
+    示例：
+      python deploy.py grant-wiki your-email@example.com
+      python deploy.py grant-wiki your-email@example.com --perm editor
+    """
+    from glue.deploy import _deploy_grant_wiki
+    settings = Settings()
+    asyncio.run(_deploy_grant_wiki(settings, member_type, member, perm_role))
+
+
 @app.command(name="open-bitable")
 def open_bitable(
     entity: str = typer.Option(
