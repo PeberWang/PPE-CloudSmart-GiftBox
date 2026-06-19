@@ -28,40 +28,51 @@
 
 ## 三、快速开始
 
-### 3.1 准备环境（约 30-60 分钟，每步都有详细指引）
+### 3.1 准备环境（约 30-60 分钟）
 
-部署前需要完成 6 件准备工作。如果你不知道某一步怎么做，**点对应链接跟着 [00-快速开始.md](docs/00-快速开始.md) 走**，每步都有图文级说明：
+部署需要完成 7 件事。**第 1-3 件在本地电脑操作，第 4-7 件是注册 4 个云账号拿凭证**。
 
-| 准备工作 | 用途 | 不知道怎么做？看这里 |
+**本地电脑（3 件事）**：
+
+1. **装 Python 3.11+**（项目代码的解释器，无法自动装）
+   - 访问 https://www.python.org/downloads/
+   - 下载并运行安装包
+   - Windows 安装时**务必勾选底部「Add Python.exe to PATH」**
+
+2. **下载项目代码**
+
+   ```bash
+   git clone https://github.com/PeberWang/PPE-CloudSmart-GiftBox.git
+   cd PPE-CloudSmart-GiftBox
+   ```
+
+   不熟悉 git？GitHub 页面点「Code」→「Download ZIP」→ 解压也行。
+
+3. **双击 `setup.bat`**（Windows）或 **跑 `bash setup.sh`**（macOS/Linux）
+   - 自动检测并装 LibreOffice（Office 文档 OCR 用）
+   - 自动装 Python 依赖
+   - 自动创建 `.env` 配置文件
+   - 脚本逻辑和排错见 [00 § 2.2](docs/00-快速开始.md#22-一键装所有依赖--配置推荐)
+
+**注册 4 个云账号拿凭证（4 件事）**：
+
+按 [00 § 1.1-1.4](docs/00-快速开始.md#一准备账号--装环境) 操作，每个都有详细步骤（包括截图级菜单路径）：
+
+| 账号 | 用途 | 拿到什么 |
 |---|---|---|
-| 装 Python 3.11+ | 跑代码 | [00 § 1.5](docs/00-快速开始.md#15-装-python-311) |
-| 装 LibreOffice | Office 文档 OCR 转 PDF | [00 § 1.6](docs/00-快速开始.md#16-装-libreofficeoffice-文档转-pdf-用ocr-流程必需) |
-| 注册飞书企业版 + 建应用 | 知识库 + bitable 载体 | [00 § 1.1](docs/00-快速开始.md#11-飞书企业版用作知识库--多维表格载体) |
-| 注册阿里云 + 开通 OSS + 建公共读 bucket | 资料归档存储 | [00 § 1.2](docs/00-快速开始.md#12-阿里云-oss用作资料归档存储) |
-| 注册 DeepSeek + 充值 | LLM（生成课程文档 + 摘要） | [00 § 1.3](docs/00-快速开始.md#13-deepseek-api用作-llm生成课程文档--摘要) |
-| 注册智谱 GLM-OCR + 充值 | OCR API | [00 § 1.4](docs/00-快速开始.md#14-智谱-glm-ocr用作-pdf-ocr) |
+| 飞书企业版 | 知识库 + bitable 载体 | App ID + App Secret |
+| 阿里云 OSS | 资料归档存储 | AK + SK + bucket 名 + endpoint |
+| DeepSeek | LLM（生成课程文档 + 摘要） | API Key |
+| 智谱 GLM-OCR | OCR API | API Key |
 
 **三个特别提醒**：
 - 装 Python 时**务必勾选「Add Python to PATH」**（Windows）
 - 阿里云 OSS bucket 读写权限选「**公共读**」（学生凭链接直接下载）
 - AccessKey Secret 只显示一次，**立刻复制保存**
 
-### 3.2 下载代码 + 装依赖
+### 3.2 配置 .env
 
-```bash
-git clone https://github.com/PeberWang/PPE-CloudSmart-GiftBox.git
-cd PPE-CloudSmart-GiftBox
-
-pip install -r requirements.txt
-```
-
-下载慢的话换国内镜像：`pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple`
-
-> 不熟悉 git？在 GitHub 页面点「Code」→「Download ZIP」→ 解压也行。详见 [00 § 2.1](docs/00-快速开始.md#21-下载代码)。
-
-### 3.3 配置 .env
-
-复制 `.env.example` 为 `.env`（Windows: `copy .env.example .env`；macOS/Linux: `cp .env.example .env`），用记事本打开 `.env`，按 [00 § 三](docs/00-快速开始.md#三配置-env-文件) 填入凭证。
+setup 脚本已经帮你创建了 `.env` 文件。用记事本打开它，按 [00 § 三](docs/00-快速开始.md#三配置-env-文件) 填入凭证。
 
 关键字段（字段含义详见 [04-技术原理.md](docs/04-技术原理.md)）：
 
@@ -79,7 +90,7 @@ WIKI_SPACE_NAME=XX 专业课程大礼包                   # 你的专业名
 # BITABLE_APP_TOKEN 先留空，下一步 init-bitable 后填回
 ```
 
-### 3.4 首次部署（6 命令）
+### 3.3 首次部署（6 命令）
 
 按顺序在终端跑：
 
