@@ -34,14 +34,26 @@
 
 **第一步：本地准备**
 
-1. **下载项目代码**
+1. **打开命令行，下载项目代码**
+
+   这个项目全程要在命令行里跑命令，所以第一步先把命令行打开。
+
+   **Windows**：用文件管理器打开你想存放项目的文件夹（比如 `D:\projects`），点上方地址栏（显示路径那个长条），把内容全选删掉，输入 `cmd` 回车——命令行就开在这个文件夹里了。
+
+   **macOS / Linux**：打开终端，用 `cd` 切到你想放的目录。
+
+   命令行打开后，跑：
 
    ```bash
    git clone https://github.com/PeberWang/PPE-CloudSmart-GiftBox.git
    cd PPE-CloudSmart-GiftBox
    ```
 
-   不熟悉 git？走这条：GitHub 页面绿色「Code」→「Download ZIP」→ 解压 → 进入解压出来的文件夹（叫 `PPE-CloudSmart-GiftBox-master`）→ 在文件管理器上方的地址栏输入 `cmd` 回车（命令行就开在这个文件夹里）。接着跑下面第 2 步的 `setup.bat`。截图级步骤见 [00 § 2.1](docs/00-快速开始.md#21-下载代码)。
+   提示「git 不是内部或外部命令」？系统没装 git，去 https://git-scm.com/downloads 下载安装包装一下，装完**关闭当前命令行窗口重新打开**（让 PATH 生效），再跑上面的命令。
+
+   > 不建议走 GitHub 页面的「Download ZIP」按钮——看起来省事，其实解压完还是要打开命令行跑下面的 `setup.bat`，并没省步骤；后续 `git pull` 更新代码也用不了（每次更新都得重新下载、解压、覆盖）。所以即使要花一两分钟装 git，也建议走 git 这条路。
+
+   截图级步骤见 [00 § 2.1](docs/00-快速开始.md#21-下载代码)。
 
 2. **在项目目录里跑一行命令**，自动检查 Python、装虚拟环境、装 LibreOffice、装依赖、生成 `.env` 配置文件
 
